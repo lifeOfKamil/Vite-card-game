@@ -10,8 +10,18 @@ const io = new Server(httpServer, {
 	},
 });
 
+let connectedUsers = [];
+let playerCards = [];
+
 io.on("connection", (socket) => {
-	socket.emit("welcome", "Welcome to the game");
+	if (connectedUsers.length >= 2) {
+		socket.emit("reject", "Game is full. Try again later.");
+		socket.disconnect(true);
+		console.log("User rejected, server full.");
+		return;
+	}
+	connectedUsers.push(socket.id);
+	console.log("connectedUsers", connectedUsers);
 
 	console.log("⚡: User connected: ", socket.id);
 
@@ -20,13 +30,17 @@ io.on("connection", (socket) => {
 	});
 
 	socket.on("drawCard", ({ updatedDeck, drawnCard }) => {
-		console.log("Updated deck: ", updatedDeck);
 		console.log("Drawn card: ", drawnCard);
 
 		socket.broadcast.emit("updateDeck", updatedDeck);
+
+		let card = drawnCard;
+		playerCards.push(card);
+		console.log("Player: " + socket.id + " has cards: ", playerCards);
 	});
 
 	socket.on("disconnect", () => {
+		connectedUsers = connectedUsers.filter((user) => user !== socket.id);
 		console.log("🔥: User disconnected: ", socket.id);
 	});
 });

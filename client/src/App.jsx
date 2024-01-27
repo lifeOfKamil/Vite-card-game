@@ -7,14 +7,24 @@ const socket = io("http://localhost:3000");
 function App() {
 	const [count, setCount] = useState(0);
 	const [deck, setDeck] = useState(generateDeck());
+	const [playerCards, setPlayerCards] = useState([]);
 
 	useEffect(() => {
 		socket.on("updateDeck", (updatedDeck) => {
 			setDeck(updatedDeck);
 		});
 
+		socket.on("updatePlayerCards", (cards) => {
+			setPlayerCards(cards);
+		});
+
+		socket.on("reject", (message) => {
+			alert(message);
+		});
+
 		return () => {
 			socket.off("updateDeck");
+			socket.off("updatePlayerCards");
 		};
 	}, []);
 
@@ -25,8 +35,16 @@ function App() {
 		socket.emit("drawCard", { updatedDeck, drawnCard });
 	};
 
+	const updatePlayerCards = (cards) => {
+		socket.emit("updatePlayerCards", cards);
+	};
+
 	return (
 		<>
+			<div className="user-area">
+				<h4>User 1</h4>
+				<p></p>
+			</div>
 			<div className="countBtn">
 				<button onClick={() => setCount((count) => count + 1)}>count is {count}</button>
 			</div>
@@ -35,6 +53,11 @@ function App() {
 			</div>
 			<div className="deck">
 				<Deck cards={deck[deck.length - 1]} />
+			</div>
+			<div className="playerCards">
+				{playerCards.map((cards) => (
+					<Deck cards={cards} />
+				))}
 			</div>
 		</>
 	);
