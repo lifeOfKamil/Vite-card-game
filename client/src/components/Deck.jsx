@@ -1,5 +1,5 @@
 import React from "react";
-import Card from "./Card";
+import Card from "./Card.jsx";
 
 const suits = ["Hearts", "Diamonds", "Clubs", "Spades"];
 const ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
@@ -15,13 +15,10 @@ export function generateDeck() {
 }
 
 export function Deck({ cards }) {
+	console.log(cards);
 	return (
 		<div className="deck">
-			{cards.map((card, index) => (
-				<div key={index} className="card">
-					{`${card.rank} of ${card.suit}`}
-				</div>
-			))}
+			<Card suit={cards.suit} rank={cards.rank} />
 		</div>
 	);
 }
