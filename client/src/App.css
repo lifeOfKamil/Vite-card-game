@@ -12,6 +12,7 @@
 	flex-direction: row;
 	align-items: center;
 	justify-content: center;
+	background-color: #373737;
 }
 
 .cardsInPlay {
@@ -24,6 +25,30 @@
 
 .cardsInHand {
 	flex: 1;
+}
+
+.userArea {
+	position: relative;
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+
+	h4 {
+		font-size: 1.5em;
+		color: #fcfcfc;
+		margin: 0;
+		line-height: 1;
+	}
+	p {
+		color: #bdbdbd;
+		margin: 0;
+	}
+}
+
+.userInfo {
+	position: absolute;
+	bottom: 24px;
+	left: 24px;
 }
 
 .dealerArea {
@@ -41,9 +66,56 @@
 	margin-right: 24px;
 }
 
+.user-cards {
+	z-index: 2;
+	&.user-2 {
+		padding-top: 30px;
+	}
+}
+
+.card {
+	border: 1px solid #121212;
+	border-radius: 4px;
+	background-color: #fff;
+	width: 168px;
+	height: 245px;
+	font-size: 1.25rem;
+}
+
+.face-up {
+	z-index: 2;
+	margin-inline: 8px;
+}
+
+.card-back {
+	margin-inline: 8px;
+	z-index: 1;
+}
+
+.gamble-cards {
+	position: absolute;
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	z-index: -1;
+	&.user-1 {
+		bottom: -30px;
+	}
+
+	&.user-2 {
+		top: 0;
+	}
+}
+
 .card:hover {
 	transform: scale(1.05);
 	border: 2px solid #646cff !important;
+}
+
+.cardsInHand {
+	p {
+		color: #fcfcfc;
+	}
 }
 
 .read-the-docs {
