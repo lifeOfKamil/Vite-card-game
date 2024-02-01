@@ -12,37 +12,69 @@ const io = new Server(httpServer, {
 
 let connectedUsers = [];
 let playerCards = [];
+let gameIdCounter = 1;
 
 io.on("connection", (socket) => {
+	const gameId = gameIdCounter;
+
+	socket.join(`game-${gameId}`);
+
 	if (connectedUsers.length >= 2) {
 		socket.emit("reject", "Game is full. Try again later.");
 		socket.disconnect(true);
 		console.log("User rejected, server full.");
 		return;
 	}
-	connectedUsers.push(socket.id);
-	console.log("connectedUsers", connectedUsers);
+	// Add user to connectedUsers array
+	connectedUsers.push({ id: socket.id, gameId });
 
 	console.log("⚡: User connected: ", socket.id);
+
+	console.log("👥: Connected users: ", connectedUsers);
+
+	// Send gameId to connected clients
+	socket.emit("gameId", gameId);
+
+	socket.to(`game-${gameId}`).emit("gameData", {
+		gameId,
+		users: connectedUsers,
+		playerCards,
+	});
+
+	socket.to(`game-${gameId}`).emit(
+		"updateUsers",
+		connectedUsers.filter((user) => user.id !== socket.id)
+	);
 
 	socket.on("message", (data) => {
 		console.log("message data", data);
 	});
 
 	socket.on("drawCard", ({ updatedDeck, drawnCard }) => {
-		console.log("Drawn card: ", drawnCard);
+		if (!playerCards[socket.id]) {
+			playerCards[socket.id] = [];
+		}
 
-		socket.broadcast.emit("updateDeck", updatedDeck);
+		playerCards[socket.id].push(drawnCard);
 
-		let card = drawnCard;
-		playerCards.push(card);
-		console.log("Player: " + socket.id + " has cards: ", playerCards);
+		console.log("Player: " + socket.id + " has cards: ", playerCards[socket.id]);
+
+		socket.to(`game-${gameId}`).emit("updateDeck", updatedDeck);
+		socket.to(`game-${gameId}`).emit("updatePlayerCards", playerCards);
+	});
+
+	socket.on("updatePlayerCards", (cards) => {
+		playerCards[socket.id] = cards;
+		socket.broadcast.to(`game-${gameId}`).emit("updatePlayerCards", cards);
 	});
 
 	socket.on("disconnect", () => {
-		connectedUsers = connectedUsers.filter((user) => user !== socket.id);
+		connectedUsers = connectedUsers.filter((user) => user.id !== socket.id);
+		socket.broadcast.to(`game-${gameId}`).emit("updateUsers", connectedUsers);
 		console.log("🔥: User disconnected: ", socket.id);
 	});
 });
 
-httpServer.listen(3000);
+httpServer.listen(3000, () => {
+	console.log("🚀: Server listening on port 3000");
+});
