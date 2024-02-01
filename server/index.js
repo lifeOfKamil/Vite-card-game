@@ -12,6 +12,7 @@ const io = new Server(httpServer, {
 
 let connectedUsers = [];
 let playerCards = [];
+let playerGambleCards = [];
 let gameIdCounter = 1;
 
 io.on("connection", (socket) => {
@@ -61,6 +62,22 @@ io.on("connection", (socket) => {
 
 		socket.to(`game-${gameId}`).emit("updateDeck", updatedDeck);
 		socket.to(`game-${gameId}`).emit("updatePlayerCards", playerCards);
+	});
+
+	socket.on("gambleCards", ({ updatedDeck, cards }) => {
+		if (!playerGambleCards[socket.id]) {
+			playerGambleCards[socket.id] = [];
+		}
+
+		playerGambleCards[socket.id] = cards;
+
+		io.to(socket.id).emit("updateGambleCards", cards);
+
+		socket.to(`game-${gameId}`).emit("updateDeck", updatedDeck);
+
+		console.log("Player: " + socket.id + " has gamble cards: ", playerGambleCards[socket.id]);
+
+		socket.to(`game-${gameId}`).emit("updateGambleCards", playerGambleCards);
 	});
 
 	socket.on("updatePlayerCards", (cards) => {
