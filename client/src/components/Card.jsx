@@ -4,10 +4,10 @@ import "../App.css";
 function Card(props) {
 	const cardStyle = {
 		border: "1px solid #4f4f4f",
-		borderRadius: "15px",
+		borderRadius: "4px",
 		backgroundColor: "#fff",
-		width: "150px",
-		height: "220px",
+		width: "168px",
+		height: "245px",
 	};
 	return (
 		<button style={cardStyle} className="card">
