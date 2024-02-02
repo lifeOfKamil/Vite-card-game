@@ -1,17 +1,18 @@
 import react, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
-import { Deck, generateDeck } from "./components/Deck";
+import { Deck } from "./components/Deck";
 import cardBack from "./assets/Card_back.png";
 
 const socket = io("http://localhost:3000");
 
 function App() {
-	const [deck, setDeck] = useState(generateDeck());
+	const [deck, setDeck] = useState([]);
 	const [playerCards, setPlayerCards] = useState([]);
 	const [playerGambleCards, setPlayerGambleCards] = useState([]);
 	const [users, setUsers] = useState([]);
 
 	useEffect(() => {
+		socket.emit("requestDeck");
 		socket.on("connect", () => {
 			const cardBackElements = document.getElementsByClassName("card-back");
 			for (let i = 0; i < cardBackElements.length; i++) {
@@ -19,6 +20,10 @@ function App() {
 				cardBackElements[i].style.width = "168px";
 				cardBackElements[i].style.height = "245px";
 			}
+		});
+
+		socket.on("deckGenerated", (generatedDeck) => {
+			setDeck(generatedDeck);
 		});
 
 		socket.on("updateDeck", (updatedDeck) => {
@@ -61,7 +66,7 @@ function App() {
 		const updatedDeck = [...deck];
 		const drawnCard = updatedDeck.pop();
 		setDeck(updatedDeck);
-		socket.emit("drawCard", { updatedDeck, drawnCard });
+		socket.emit("drawCard");
 	};
 
 	const updatePlayerCards = (cards) => {
@@ -105,9 +110,9 @@ function App() {
 									: "No Card"}
 							</button>
 							<div className="gamble-cards user-2">
-								<img class="card-back" alt="card_back" />
-								<img class="card-back" alt="card_back" />
-								<img class="card-back" alt="card_back" />
+								<img className="card-back" alt="card_back" />
+								<img className="card-back" alt="card_back" />
+								<img className="card-back" alt="card_back" />
 							</div>
 						</div>
 					</div>
@@ -122,7 +127,9 @@ function App() {
 						</div>
 						<img class="card-back" alt="card_back" />
 						<div className="deck">
-							<Deck cards={deck[deck.length - 1]} />
+							<button className="card">
+								{deck.length > 0 ? `${deck[deck.length - 1].rank} of ${deck[deck.length - 1].suit}` : "No Card"}
+							</button>
 						</div>
 					</div>
 					<div className="userArea">
