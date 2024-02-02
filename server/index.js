@@ -1,6 +1,7 @@
-import express from "express";
-import { createServer } from "http";
-import { Server } from "socket.io";
+const express = require("express");
+const { createServer } = require("http");
+const { Server } = require("socket.io");
+const { generateDeck } = require("./utils/deck");
 
 const app = express();
 const httpServer = createServer(app);
@@ -11,30 +12,39 @@ const io = new Server(httpServer, {
 });
 
 let connectedUsers = [];
+let decks = {};
 let playerCards = [];
 let playerGambleCards = [];
 let gameIdCounter = 1;
 
 io.on("connection", (socket) => {
-	const gameId = gameIdCounter;
-
-	socket.join(`game-${gameId}`);
-
+	let gameId = ``;
 	if (connectedUsers.length >= 2) {
-		socket.emit("reject", "Game is full. Try again later.");
-		socket.disconnect(true);
-		console.log("User rejected, server full.");
-		return;
+		gameId = `game-${gameIdCounter++}`;
+		socket.join(gameId);
+		connectedUsers.push({ id: socket.id, gameId });
+	} else {
+		gameId = `game-${gameIdCounter}`;
+		socket.join(gameId);
+		connectedUsers.push({ id: socket.id, gameId });
 	}
-	// Add user to connectedUsers array
-	connectedUsers.push({ id: socket.id, gameId });
 
 	console.log("⚡: User connected: ", socket.id);
-
 	console.log("👥: Connected users: ", connectedUsers);
 
-	// Send gameId to connected clients
-	socket.emit("gameId", gameId);
+	decks[gameId] = generateDeck();
+	playerGambleCards[socket.id] = [];
+
+	socket.emit("gameData", {
+		gameId,
+		users: connectedUsers,
+		deck: decks[gameId],
+	});
+
+	socket.on("requestDeck", () => {
+		decks[gameId] = generateDeck();
+		io.to(gameId).emit("deckGenerated", decks[gameId]);
+	});
 
 	socket.to(`game-${gameId}`).emit("gameData", {
 		gameId,
@@ -51,33 +61,20 @@ io.on("connection", (socket) => {
 		console.log("message data", data);
 	});
 
-	socket.on("drawCard", ({ updatedDeck, drawnCard }) => {
-		if (!playerCards[socket.id]) {
-			playerCards[socket.id] = [];
+	socket.on("drawCard", () => {
+		if (decks[gameId] && decks[gameId].length > 0) {
+			const card = decks[gameId].pop();
+			socket.emit("cardDrawn", card); // Notify the drawing player
+			io.to(gameId).emit("updateDeck", decks[gameId]); // Update all players in the game with the new deck state
 		}
-
-		playerCards[socket.id].push(drawnCard);
-
-		console.log("Player: " + socket.id + " has cards: ", playerCards[socket.id]);
-
-		socket.to(`game-${gameId}`).emit("updateDeck", updatedDeck);
-		socket.to(`game-${gameId}`).emit("updatePlayerCards", playerCards);
 	});
 
-	socket.on("gambleCards", ({ updatedDeck, cards }) => {
-		if (!playerGambleCards[socket.id]) {
-			playerGambleCards[socket.id] = [];
-		}
-
+	socket.on("gambleCards", () => {
+		// Example of handling gamble cards, adjust according to your game logic
+		const cards = decks[gameId].splice(decks[gameId].length - 3, 3); // Take the last three cards from the deck
 		playerGambleCards[socket.id] = cards;
-
-		io.to(socket.id).emit("updateGambleCards", cards);
-
-		socket.to(`game-${gameId}`).emit("updateDeck", updatedDeck);
-
-		console.log("Player: " + socket.id + " has gamble cards: ", playerGambleCards[socket.id]);
-
-		socket.to(`game-${gameId}`).emit("updateGambleCards", playerGambleCards);
+		socket.emit("updateGambleCards", cards); // Update the player who drew the gamble cards
+		io.to(gameId).emit("updateDeck", decks[gameId]); // Update all players with the new deck state
 	});
 
 	socket.on("updatePlayerCards", (cards) => {
@@ -86,9 +83,15 @@ io.on("connection", (socket) => {
 	});
 
 	socket.on("disconnect", () => {
-		connectedUsers = connectedUsers.filter((user) => user.id !== socket.id);
-		socket.broadcast.to(`game-${gameId}`).emit("updateUsers", connectedUsers);
 		console.log("🔥: User disconnected: ", socket.id);
+		connectedUsers = connectedUsers.filter((user) => user.id !== socket.id);
+		if (connectedUsers.length === 0) {
+			// Reset the game if all users have disconnected
+			delete decks[gameId];
+			delete playerGambleCards[socket.id];
+			gameIdCounter = 1; // Reset gameIdCounter or adjust according to your needs
+		}
+		io.to(gameId).emit("updateUsers", connectedUsers);
 	});
 });
 
