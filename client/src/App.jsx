@@ -32,6 +32,14 @@ function App() {
 
 		socket.on("updatePlayerCards", (cards) => {
 			setPlayerCards(cards);
+			let cardsInHand = document.getElementById("CardsInHand");
+			cardsInHand.innerHTML = "";
+			for (let i = 0; i < cards.length; i++) {
+				let card = document.createElement("button");
+				card.className = "card";
+				card.innerHTML = `${cards[i].rank} of ${cards[i].suit}`;
+				cardsInHand.appendChild(card);
+			}
 		});
 
 		socket.on("updateGambleCards", (cards) => {
@@ -40,6 +48,11 @@ function App() {
 
 		socket.on("gameData", ({ gameId, users }) => {
 			setUsers(users);
+		});
+
+		socket.on("cardDrawn", (card) => {
+			setPlayerCards((currentPlayerCards) => [...currentPlayerCards, card]);
+			console.log(playerCards);
 		});
 
 		socket.on("reject", (message) => {
@@ -58,13 +71,13 @@ function App() {
 			socket.off("updatePlayerCards");
 			socket.off("updateGambleCards");
 			socket.off("gameData");
+			socket.off("cardDrawn");
 			socket.off("reject");
 		};
 	}, []);
 
 	const drawCard = () => {
 		const updatedDeck = [...deck];
-		const drawnCard = updatedDeck.pop();
 		setDeck(updatedDeck);
 		socket.emit("drawCard");
 	};
@@ -139,19 +152,13 @@ function App() {
 						</div>
 						<div className="user-cards user-1">
 							<button className="card face-up">
-								{playerGambleCards.length > 0
-									? `${playerGambleCards[0].rank} of ${playerGambleCards[0].suit}`
-									: "No Card"}
+								{playerGambleCards.length > 0 ? `${playerGambleCards[0].rank} of ${playerGambleCards[0].suit}` : "-"}
 							</button>
 							<button className="card face-up">
-								{playerGambleCards.length > 0
-									? `${playerGambleCards[1].rank} of ${playerGambleCards[1].suit}`
-									: "No Card"}
+								{playerGambleCards.length > 0 ? `${playerGambleCards[1].rank} of ${playerGambleCards[1].suit}` : "-"}
 							</button>
 							<button className="card face-up">
-								{playerGambleCards.length > 0
-									? `${playerGambleCards[2].rank} of ${playerGambleCards[2].suit}`
-									: "No Card"}
+								{playerGambleCards.length > 0 ? `${playerGambleCards[2].rank} of ${playerGambleCards[2].suit}` : "-"}
 							</button>
 							<div className="gamble-cards user-1">
 								<img class="card-back" alt="card_back" />
@@ -163,6 +170,11 @@ function App() {
 				</div>
 				<div className="cardsInHand">
 					<p>display cards in hand</p>
+					<div className="cards" id="CardsInHand">
+						{playerCards
+							? playerCards.map((card) => <button className="card">{`${card.rank} of ${card.suit}`}</button>)
+							: null}
+					</div>
 				</div>
 			</div>
 		</>
