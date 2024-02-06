@@ -74,12 +74,16 @@
 }
 
 .card {
-	border: 1px solid #121212;
+	border: 1px solid #e0e0e0;
 	border-radius: 4px;
 	background-color: #fff;
 	width: 168px;
 	height: 245px;
 	font-size: 1.25rem;
+
+	&.selected {
+		border: 5px solid #646cff;
+	}
 }
 
 .face-up {
@@ -113,6 +117,9 @@
 }
 
 .cardsInHand {
+	.card {
+		margin-right: 8px;
+	}
 	p {
 		color: #fcfcfc;
 	}
