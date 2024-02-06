@@ -10,6 +10,7 @@ function App() {
 	const [playerCards, setPlayerCards] = useState([]);
 	const [playerGambleCards, setPlayerGambleCards] = useState([]);
 	const [users, setUsers] = useState([]);
+	const [selectedCard, setSelectedCard] = useState(null);
 
 	useEffect(() => {
 		socket.emit("requestDeck");
@@ -86,6 +87,22 @@ function App() {
 		socket.emit("updatePlayerCards", cards);
 	};
 
+	const selectCard = (card) => {
+		setSelectedCard(card);
+	};
+
+	const submitSelectedCard = () => {
+		if (selectedCard) {
+			const updatedDeck = [...deck, selectedCard];
+			const updatedPlayerCards = playerCards.filter((card) => card !== selectedCard);
+			setDeck(updatedDeck);
+			setPlayerCards(updatedPlayerCards);
+			setSelectedCard(null);
+		} else {
+			alert("No card selected.");
+		}
+	};
+
 	const startGame = () => {
 		const updatedDeck = [...deck];
 		const cards = [];
@@ -108,19 +125,13 @@ function App() {
 						</div>
 						<div className="user-cards user-2">
 							<button className="card face-up">
-								{playerGambleCards.length > 0
-									? `${playerGambleCards[0].rank} of ${playerGambleCards[0].suit}`
-									: "No Card"}
+								{playerGambleCards.length > 0 ? `${playerGambleCards[0].rank} of ${playerGambleCards[0].suit}` : "-"}
 							</button>
 							<button className="card face-up">
-								{playerGambleCards.length > 0
-									? `${playerGambleCards[1].rank} of ${playerGambleCards[1].suit}`
-									: "No Card"}
+								{playerGambleCards.length > 0 ? `${playerGambleCards[1].rank} of ${playerGambleCards[1].suit}` : "-"}
 							</button>
 							<button className="card face-up">
-								{playerGambleCards.length > 0
-									? `${playerGambleCards[2].rank} of ${playerGambleCards[2].suit}`
-									: "No Card"}
+								{playerGambleCards.length > 0 ? `${playerGambleCards[2].rank} of ${playerGambleCards[2].suit}` : "-"}
 							</button>
 							<div className="gamble-cards user-2">
 								<img className="card-back" alt="card_back" />
@@ -136,6 +147,9 @@ function App() {
 							</button>
 							<button onClick={startGame} class="playerButton">
 								Start
+							</button>
+							<button onClick={submitSelectedCard} className="playerButton">
+								Submit
 							</button>
 						</div>
 						<img class="card-back" alt="card_back" />
@@ -172,7 +186,13 @@ function App() {
 					<p>display cards in hand</p>
 					<div className="cards" id="CardsInHand">
 						{playerCards
-							? playerCards.map((card) => <button className="card">{`${card.rank} of ${card.suit}`}</button>)
+							? playerCards.map((card, index) => (
+									<button
+										key={index}
+										className={`card cardHand ${selectedCard === card ? "selected" : ""}`}
+										onClick={() => selectCard(card)}
+									>{`${card.rank} of ${card.suit}`}</button>
+							  ))
 							: null}
 					</div>
 				</div>
