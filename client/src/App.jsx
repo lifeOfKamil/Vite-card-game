@@ -6,10 +6,11 @@ import cardBack from "./assets/Card_back.png";
 const socket = io("http://localhost:3000");
 
 function App() {
-	const [deck, setDeck] = useState([]);
-	const [playerCards, setPlayerCards] = useState([]);
-	const [playerGambleCards, setPlayerGambleCards] = useState([]);
+	const [deck, setDeck] = useState([]); // dealer deck
+	const [gameDeck, setGameDeck] = useState([]); // game deck
 	const [users, setUsers] = useState([]);
+	const [playerCards, setPlayerCards] = useState([]); // cards in hand
+	const [playerGambleCards, setPlayerGambleCards] = useState([]); // face down cards
 	const [selectedCard, setSelectedCard] = useState(null);
 
 	useEffect(() => {
@@ -29,6 +30,10 @@ function App() {
 
 		socket.on("updateDeck", (updatedDeck) => {
 			setDeck(updatedDeck);
+		});
+
+		socket.on("updateGameDeck", (updatedGameDeck) => {
+			setGameDeck(updatedGameDeck);
 		});
 
 		socket.on("updatePlayerCards", (cards) => {
@@ -74,6 +79,7 @@ function App() {
 			socket.off("gameData");
 			socket.off("cardDrawn");
 			socket.off("reject");
+			socket.off("updateGameDeck");
 		};
 	}, []);
 
@@ -95,8 +101,12 @@ function App() {
 		if (selectedCard) {
 			const updatedDeck = [...deck, selectedCard];
 			const updatedPlayerCards = playerCards.filter((card) => card !== selectedCard);
+			const updatedGameDeck = [...gameDeck, selectedCard];
+			gameDeck.push(selectedCard);
+			console.log("Game Deck: ", gameDeck);
 			setDeck(updatedDeck);
 			setPlayerCards(updatedPlayerCards);
+			socket.emit("submitCard", selectedCard);
 			setSelectedCard(null);
 		} else {
 			alert("No card selected.");
@@ -155,7 +165,9 @@ function App() {
 						<img class="card-back" alt="card_back" />
 						<div className="deck">
 							<button className="card">
-								{deck.length > 0 ? `${deck[deck.length - 1].rank} of ${deck[deck.length - 1].suit}` : "No Card"}
+								{gameDeck.length > 0
+									? `${gameDeck[gameDeck.length - 1].rank} of ${gameDeck[gameDeck.length - 1].suit}`
+									: "No Card"}
 							</button>
 						</div>
 					</div>
@@ -183,7 +195,7 @@ function App() {
 					</div>
 				</div>
 				<div className="cardsInHand">
-					<p>display cards in hand</p>
+					<p>Cards in hand:</p>
 					<div className="cards" id="CardsInHand">
 						{playerCards
 							? playerCards.map((card, index) => (
