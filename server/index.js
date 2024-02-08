@@ -13,6 +13,7 @@ const io = new Server(httpServer, {
 
 let connectedUsers = [];
 let decks = {};
+let gameDeck = [];
 let playerCards = [];
 let playerGambleCards = [];
 let gameIdCounter = 1;
@@ -80,6 +81,11 @@ io.on("connection", (socket) => {
 	socket.on("updatePlayerCards", (cards) => {
 		playerCards[socket.id] = cards;
 		socket.broadcast.to(`game-${gameId}`).emit("updatePlayerCards", cards);
+	});
+
+	socket.on("submitCard", (card) => {
+		gameDeck.push(card);
+		io.emit("updateGameDeck", gameDeck);
 	});
 
 	socket.on("disconnect", () => {
