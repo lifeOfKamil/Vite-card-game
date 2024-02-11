@@ -13,9 +13,11 @@ const io = new Server(httpServer, {
 
 let connectedUsers = [];
 let decks = {};
-let gameDeck = [];
-let playerCards = [];
-let playerGambleCards = [];
+let gameDeck = []; // This will hold the cards that are submitted by the players
+let playerCards = []; // This will hold the cards in hand of the players
+let playerGambleCards = []; // This will hold the face up, "gamble" cards of the players
+let p1_faceUpCards = [];
+let p2_faceUpCards = [];
 let gameIdCounter = 1;
 
 io.on("connection", (socket) => {
@@ -34,7 +36,15 @@ io.on("connection", (socket) => {
 	console.log("👥: Connected users: ", connectedUsers);
 
 	decks[gameId] = generateDeck();
-	playerGambleCards[socket.id] = [];
+	// playerGambleCards[socket.id] = [];
+
+	socket.on("startGame", () => {
+		const p1_faceUpCards = decks[gameId].splice(decks[gameId].length - 3, 3);
+		const p2_faceUpCards = decks[gameId].splice(decks[gameId].length - 3, 3);
+
+		socket.emit("updateDeck", decks[gameId]);
+		socket.emit("updateGambleCards", p1_faceUpCards, p2_faceUpCards);
+	});
 
 	socket.emit("gameData", {
 		gameId,

@@ -10,8 +10,18 @@ function App() {
 	const [gameDeck, setGameDeck] = useState([]); // game deck
 	const [users, setUsers] = useState([]);
 	const [playerCards, setPlayerCards] = useState([]); // cards in hand
+	const [player1_faceUpCards, setPlayer1_faceUpCards] = useState([]);
+	const [player2_faceUpCards, setPlayer2_faceUpCards] = useState([]);
 	const [playerGambleCards, setPlayerGambleCards] = useState([]); // face down cards
 	const [selectedCard, setSelectedCard] = useState(null);
+
+	useEffect(() => {
+		console.log("Player 1 Face Up Cards: ", player1_faceUpCards);
+	}, [player1_faceUpCards]);
+
+	useEffect(() => {
+		console.log("Player 2 Face Up Cards: ", player2_faceUpCards);
+	}, [player2_faceUpCards]);
 
 	useEffect(() => {
 		socket.emit("requestDeck");
@@ -48,8 +58,9 @@ function App() {
 			}
 		});
 
-		socket.on("updateGambleCards", (cards) => {
-			setPlayerGambleCards(cards);
+		socket.on("updateGambleCards", (p1_faceUpCards, p2_faceUpCards) => {
+			setPlayer1_faceUpCards(p1_faceUpCards);
+			setPlayer2_faceUpCards(p2_faceUpCards);
 		});
 
 		socket.on("gameData", ({ gameId, users }) => {
@@ -68,7 +79,7 @@ function App() {
 		socket.on("startGame", () => {
 			const updatedDeck = [...deck];
 			setDeck(updatedDeck);
-			socket.emit("updatePlayerCards", cards);
+			//socket.emit("updatePlayerCards", cards);
 		});
 
 		return () => {
@@ -115,13 +126,10 @@ function App() {
 
 	const startGame = () => {
 		const updatedDeck = [...deck];
-		const cards = [];
-		for (let i = 0; i < 3; i++) {
-			cards.push(updatedDeck.pop());
-		}
 		setDeck(updatedDeck);
-		socket.emit("gambleCards", { updatedDeck, cards });
-		socket.emit("updateGambleCards", cards);
+		// socket.emit("gambleCards", { updatedDeck, cards });
+		// socket.emit("updateGambleCards", cards);
+		socket.emit("startGame");
 	};
 
 	return (
@@ -135,34 +143,40 @@ function App() {
 						</div>
 						<div className="user-cards user-2">
 							<button className="card face-up">
-								{playerGambleCards.length > 0 ? `${playerGambleCards[0].rank} of ${playerGambleCards[0].suit}` : "-"}
+								{player2_faceUpCards.length > 0
+									? `${player2_faceUpCards[0].rank} of ${player2_faceUpCards[0].suit}`
+									: "-"}
 							</button>
 							<button className="card face-up">
-								{playerGambleCards.length > 0 ? `${playerGambleCards[1].rank} of ${playerGambleCards[1].suit}` : "-"}
+								{player2_faceUpCards.length > 0
+									? `${player2_faceUpCards[1].rank} of ${player2_faceUpCards[1].suit}`
+									: "-"}
 							</button>
 							<button className="card face-up">
-								{playerGambleCards.length > 0 ? `${playerGambleCards[2].rank} of ${playerGambleCards[2].suit}` : "-"}
+								{player2_faceUpCards.length > 0
+									? `${player2_faceUpCards[2].rank} of ${player2_faceUpCards[2].suit}`
+									: "-"}
 							</button>
 							<div className="gamble-cards user-2">
-								<img className="card-back" alt="card_back" />
-								<img className="card-back" alt="card_back" />
-								<img className="card-back" alt="card_back" />
+								<img className="card-back" src={cardBack} style={{ width: "168px", height: "245px" }} alt="card back" />
+								<img className="card-back" src={cardBack} style={{ width: "168px", height: "245px" }} alt="card back" />
+								<img className="card-back" src={cardBack} style={{ width: "168px", height: "245px" }} alt="card back" />
 							</div>
 						</div>
 					</div>
 					<div className="dealerArea">
 						<div className="buttonContainer">
-							<button onClick={drawCard} class="playerButton">
+							<button onClick={drawCard} className="playerButton">
 								Draw Card
 							</button>
-							<button onClick={startGame} class="playerButton">
+							<button onClick={startGame} className="playerButton">
 								Start
 							</button>
 							<button onClick={submitSelectedCard} className="playerButton">
 								Submit
 							</button>
 						</div>
-						<img class="card-back" alt="card_back" />
+						<img className="card-back" src={cardBack} style={{ width: "168px", height: "245px" }} alt="card back" />
 						<div className="deck">
 							<button className="card">
 								{gameDeck.length > 0
@@ -178,18 +192,24 @@ function App() {
 						</div>
 						<div className="user-cards user-1">
 							<button className="card face-up">
-								{playerGambleCards.length > 0 ? `${playerGambleCards[0].rank} of ${playerGambleCards[0].suit}` : "-"}
+								{player1_faceUpCards.length > 0
+									? `${player1_faceUpCards[0].rank} of ${player1_faceUpCards[0].suit}`
+									: "-"}
 							</button>
 							<button className="card face-up">
-								{playerGambleCards.length > 0 ? `${playerGambleCards[1].rank} of ${playerGambleCards[1].suit}` : "-"}
+								{player1_faceUpCards.length > 0
+									? `${player1_faceUpCards[1].rank} of ${player1_faceUpCards[1].suit}`
+									: "-"}
 							</button>
 							<button className="card face-up">
-								{playerGambleCards.length > 0 ? `${playerGambleCards[2].rank} of ${playerGambleCards[2].suit}` : "-"}
+								{player1_faceUpCards.length > 0
+									? `${player1_faceUpCards[2].rank} of ${player1_faceUpCards[2].suit}`
+									: "-"}
 							</button>
 							<div className="gamble-cards user-1">
-								<img class="card-back" alt="card_back" />
-								<img class="card-back" alt="card_back" />
-								<img class="card-back" alt="card_back" />
+								<img className="card-back" src={cardBack} style={{ width: "168px", height: "245px" }} alt="card back" />
+								<img className="card-back" src={cardBack} style={{ width: "168px", height: "245px" }} alt="card back" />
+								<img className="card-back" src={cardBack} style={{ width: "168px", height: "245px" }} alt="card back" />
 							</div>
 						</div>
 					</div>
