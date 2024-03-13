@@ -11,42 +11,64 @@ const io = new Server(httpServer, {
 	},
 });
 
-let connectedUsers = [];
-let decks = {};
-let gameDeck = []; // This will hold the cards that are submitted by the players
-let playerCards = []; // This will hold the cards in hand of the players
-let playerGambleCards = []; // This will hold the face up, "gamble" cards of the players
-let p1_faceUpCards = [];
-let p2_faceUpCards = [];
+let connectedUsers = []; // users connected to the server
+let decks = {}; // game decks
+let gameDeck = []; // cards submitted by players; cards in play
+let playerCards = []; // cards in players current hand
+let playerGambleCards = [];
+let p1_faceUpCards = []; // cards facing up for player 1
+let p2_faceUpCards = []; // cards facing up for player 2
 let gameIdCounter = 1;
 
 io.on("connection", (socket) => {
-	let gameId = ``;
-	if (connectedUsers.length >= 2) {
+	console.log("⚡: User connected: ", socket.id);
+
+	let gameId = ``; // game id
+
+	if (connectedUsers.length / 2 === 1) {
 		gameId = `game-${gameIdCounter++}`;
-		socket.join(gameId);
-		connectedUsers.push({ id: socket.id, gameId });
 	} else {
 		gameId = `game-${gameIdCounter}`;
-		socket.join(gameId);
-		connectedUsers.push({ id: socket.id, gameId });
 	}
 
-	console.log("⚡: User connected: ", socket.id);
+	socket.join(gameId);
+	connectedUsers.push({ id: socket.id, gameId });
 	console.log("👥: Connected users: ", connectedUsers);
+	console.log(`🎮: User ${socket.id} joined ${gameId}`);
 
-	decks[gameId] = generateDeck();
-	// playerGambleCards[socket.id] = [];
+	if (!decks[gameId]) {
+		decks[gameId] = generateDeck();
+		console.log(`🎴: Deck generated for game ${gameId}`);
+	}
 
 	socket.on("startGame", () => {
 		const p1_faceUpCards = decks[gameId].splice(decks[gameId].length - 3, 3);
 		const p2_faceUpCards = decks[gameId].splice(decks[gameId].length - 3, 3);
 
-		socket.emit("updateDeck", decks[gameId]);
-		socket.emit("updateGambleCards", p1_faceUpCards, p2_faceUpCards);
+		let players = connectedUsers.filter((user) => user.gameId === gameId);
+
+		const playersInGame = connectedUsers.filter((user) => user.gameId === gameId);
+		if (playersInGame.length === 2) {
+			players.forEach((player, index) => {
+				io.to(player.id).emit("playerNumber", index + 1);
+				io.to(player.id).emit("startGame", {
+					playerNumber: index + 1,
+					p1_faceUpCards,
+					p2_faceUpCards,
+				});
+				console.log(`Player ${player.id} with face up cards: `, index === 0 ? p1_faceUpCards : p2_faceUpCards);
+			});
+
+			console.log(`Game started: gameID: ${gameId}`);
+
+			io.to(gameId).emit("updateDeck", decks[gameId]);
+			io.to(gameId).emit("updateGambleCards", p1_faceUpCards, p2_faceUpCards);
+		} else {
+			console.log(`Waiting for more players to join the game : gameID: ${gameId}`);
+		}
 	});
 
-	socket.emit("gameData", {
+	io.emit("gameData", {
 		gameId,
 		users: connectedUsers,
 		deck: decks[gameId],
@@ -101,7 +123,7 @@ io.on("connection", (socket) => {
 	socket.on("disconnect", () => {
 		console.log("🔥: User disconnected: ", socket.id);
 		connectedUsers = connectedUsers.filter((user) => user.id !== socket.id);
-		if (connectedUsers.length === 0) {
+		if (connectedUsers.length === 1) {
 			// Reset the game if all users have disconnected
 			delete decks[gameId];
 			delete playerGambleCards[socket.id];
