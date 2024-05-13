@@ -112,12 +112,19 @@ io.on("connection", (socket) => {
 
 	socket.on("updatePlayerCards", (cards) => {
 		playerCards[socket.id] = cards;
-		socket.broadcast.to(`game-${gameId}`).emit("updatePlayerCards", cards);
+		io.to(`game-${gameId}`).emit("updatePlayerCards", cards);
+	});
+
+	socket.on("updateGameDeck", (updatedGameDeck) => {
+		let currentGameID = connectedUsers.find((user) => user.id === socket.id).gameId;
+		gameDeck[currentGameID] = updatedGameDeck; // Update the game deck with the new
+		io.to(currentGameID).emit("updateGameDeck", updatedGameDeck);
 	});
 
 	socket.on("submitCard", (card) => {
 		gameDeck.push(card);
 		io.emit("updateGameDeck", gameDeck);
+		console.log("Game Deck: ", gameDeck);
 	});
 
 	socket.on("disconnect", () => {
@@ -127,6 +134,10 @@ io.on("connection", (socket) => {
 			// Reset the game if all users have disconnected
 			delete decks[gameId];
 			delete playerGambleCards[socket.id];
+			delete playerCards[socket.id];
+			delete p1_faceUpCards;
+			delete p2_faceUpCards;
+			delete gameDeck;
 			gameIdCounter = 1; // Reset gameIdCounter or adjust according to your needs
 		}
 		io.to(gameId).emit("updateUsers", connectedUsers);

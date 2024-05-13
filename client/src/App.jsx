@@ -27,6 +27,16 @@ function App() {
 	}, [player2_faceUpCards]);
 
 	useEffect(() => {
+		if (playerCards.length > 0) {
+			socket.emit("updatePlayerCards", playerCards);
+		}
+	}, [playerCards]);
+
+	useEffect(() => {
+		socket.emit("updateGameDeck", gameDeck);
+	}, [gameDeck]);
+
+	useEffect(() => {
 		socket.emit("requestDeck");
 		socket.on("connect", () => {
 			const cardBackElements = document.getElementsByClassName("card-back");
@@ -45,9 +55,13 @@ function App() {
 			setDeck(updatedDeck);
 		});
 
-		socket.on("updateGameDeck", (updatedGameDeck) => {
-			setGameDeck(updatedGameDeck);
-		});
+		socket.on(
+			"updateGameDeck",
+			(updatedGameDeck) => {
+				setGameDeck(updatedGameDeck);
+			},
+			[]
+		);
 
 		socket.on("updatePlayerCards", (cards) => {
 			setPlayerCards(cards);
@@ -144,6 +158,19 @@ function App() {
 		}
 	};
 
+	const pickUpCards = () => {
+		// Copy cards from game deck to pick up
+		const cardsToPickUp = [...gameDeck];
+
+		// Add picked up cards to players hand
+		setPlayerCards((currentPlayerCards) => [...currentPlayerCards, ...cardsToPickUp]);
+
+		// Empty game deck
+		setGameDeck([]);
+		socket.emit("updatePlayerCards", [...playerCards, ...cardsToPickUp]);
+		socket.emit("updateGameDeck", []);
+	};
+
 	const startGame = () => {
 		//const updatedDeck = [...deck];
 		//setDeck(updatedDeck);
@@ -212,6 +239,9 @@ function App() {
 								</button>
 								<button onClick={submitSelectedCard} className="playerButton">
 									Submit
+								</button>
+								<button onClick={pickUpCards} className="playerButton">
+									Pick Up
 								</button>
 							</div>
 							<img className="card-back" src={cardBack} style={{ width: "168px", height: "245px" }} alt="card back" />
