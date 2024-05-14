@@ -6,8 +6,10 @@ import cardBack from "./assets/Card_back.png";
 const socket = io("http://localhost:3000");
 
 function App() {
+	const [myCards, setMyCards] = useState([]);
+	const [isMyTurn, setIsMyTurn] = useState(false);
+
 	const [deck, setDeck] = useState([]); // dealer deck
-	const [gameDeck, setGameDeck] = useState([]); // game deck
 	const [users, setUsers] = useState([]);
 	const [playerCards, setPlayerCards] = useState([]); // cards in hand
 	const [player1_faceUpCards, setPlayer1_faceUpCards] = useState([]);
@@ -18,13 +20,34 @@ function App() {
 
 	const opponentIndex = playerNumber === 1 ? 1 : 0;
 
-	useEffect(() => {
-		console.log("Player 1 Face Up Cards: ", player1_faceUpCards);
-	}, [player1_faceUpCards]);
+	const [players, setPlayers] = useState([]);
+	const [gameDeck, setGameDeck] = useState([]);
+	const [hand, setHand] = useState([]);
+	const [faceUpCards, setFaceUpCards] = useState([]);
+	const [faceDownCards, setFaceDownCards] = useState([]);
+	const [selectedCardIndex, setSelectedCardIndex] = useState(null);
 
 	useEffect(() => {
-		console.log("Player 2 Face Up Cards: ", player2_faceUpCards);
-	}, [player2_faceUpCards]);
+		socket.emit("joinGame", {
+			/* your join game data */
+		});
+
+		socket.on("gameState", (data) => {
+			setPlayers(data.players);
+			// Assume data is structured to include your player data, including cards
+			const myPlayer = data.players.find((player) => player.id === socket.id);
+			if (myPlayer) {
+				setHand(myPlayer.hand);
+				setFaceUpCards(myPlayer.faceUpCards);
+				setFaceDownCards(myPlayer.faceDownCards);
+			}
+		});
+
+		// Clean up on component unmount
+		return () => {
+			socket.off("gameState");
+		};
+	}, []);
 
 	useEffect(() => {
 		if (playerCards.length > 0) {
@@ -35,6 +58,16 @@ function App() {
 	useEffect(() => {
 		socket.emit("updateGameDeck", gameDeck);
 	}, [gameDeck]);
+
+	useEffect(() => {
+		socket.on("updateHand", (newHand) => {
+			setHand(newHand);
+		});
+
+		return () => {
+			socket.off("updateHand");
+		};
+	}, []);
 
 	useEffect(() => {
 		socket.emit("requestDeck");
@@ -55,13 +88,17 @@ function App() {
 			setDeck(updatedDeck);
 		});
 
-		socket.on(
-			"updateGameDeck",
-			(updatedGameDeck) => {
-				setGameDeck(updatedGameDeck);
-			},
-			[]
-		);
+		socket.on("updateCards", (cards) => {
+			setMyCards(cards);
+		});
+
+		socket.on("updateGameDeck", (deck) => {
+			setGameDeck(deck);
+		});
+
+		socket.on("yourTurn", () => {
+			setIsMyTurn(true);
+		});
 
 		socket.on("updatePlayerCards", (cards) => {
 			setPlayerCards(cards);
@@ -88,11 +125,6 @@ function App() {
 			[]
 		);
 
-		socket.on("cardDrawn", (card) => {
-			setPlayerCards((currentPlayerCards) => [...currentPlayerCards, card]);
-			console.log(playerCards);
-		});
-
 		socket.on("reject", (message) => {
 			alert(message);
 		});
@@ -117,58 +149,46 @@ function App() {
 		return () => {
 			socket.off("connect");
 			socket.off("updateDeck");
+			socket.off("updateCards");
+			socket.off("updateGameDeck");
 			socket.off("updatePlayerCards");
 			socket.off("updateGambleCards");
 			socket.off("gameData");
 			socket.off("cardDrawn");
 			socket.off("reject");
-			socket.off("updateGameDeck");
 			socket.off("startGame");
 			socket.off("playerNumber");
+			socket.off("yourTurn");
 		};
 	}, []);
 
 	const drawCard = () => {
-		const updatedDeck = [...deck];
-		setDeck(updatedDeck);
-		socket.emit("drawCard");
+		socket.emit("addCardToHand");
+	};
+
+	const selectCard = (index) => {
+		setSelectedCardIndex(index);
+	};
+
+	const playCard = (cardIndex) => {
+		socket.emit("playCard", cardIndex);
 	};
 
 	const updatePlayerCards = (cards) => {
 		socket.emit("updatePlayerCards", cards);
 	};
 
-	const selectCard = (card) => {
-		setSelectedCard(card);
-	};
-
 	const submitSelectedCard = () => {
-		if (selectedCard) {
-			const updatedDeck = [...deck, selectedCard];
-			const updatedPlayerCards = playerCards.filter((card) => card !== selectedCard);
-			const updatedGameDeck = [...gameDeck, selectedCard];
-			gameDeck.push(selectedCard);
-			console.log("Game Deck: ", gameDeck);
-			setDeck(updatedDeck);
-			setPlayerCards(updatedPlayerCards);
-			socket.emit("submitCard", selectedCard);
-			setSelectedCard(null);
+		if (selectedCardIndex !== null) {
+			socket.emit("playCard", selectedCardIndex);
+			setSelectedCardIndex(null); // Reset selection
 		} else {
-			alert("No card selected.");
+			alert("No card selected!");
 		}
 	};
 
 	const pickUpCards = () => {
-		// Copy cards from game deck to pick up
-		const cardsToPickUp = [...gameDeck];
-
-		// Add picked up cards to players hand
-		setPlayerCards((currentPlayerCards) => [...currentPlayerCards, ...cardsToPickUp]);
-
-		// Empty game deck
-		setGameDeck([]);
-		socket.emit("updatePlayerCards", [...playerCards, ...cardsToPickUp]);
-		socket.emit("updateGameDeck", []);
+		socket.emit("pickUpCards");
 	};
 
 	const startGame = () => {
@@ -184,6 +204,36 @@ function App() {
 			</button>;
 		});
 	};
+
+	useEffect(() => {
+		socket.on("cardDrawnToHand", (card) => {
+			setHand((prev) => [...prev, card]);
+		});
+
+		socket.on("handUpdated", (newHand) => {
+			setHand(newHand);
+		});
+
+		socket.on("cardRemovedFromHand", (removedCard) => {
+			setHand((prev) => prev.filter((card) => card !== removedCard));
+		});
+
+		socket.on("cardPlayed", (newGameDeck) => {
+			setGameDeck(newGameDeck);
+		});
+
+		socket.on("gameDeckCleared", () => {
+			setGameDeck([]);
+		});
+
+		return () => {
+			socket.off("cardDrawnToHand");
+			socket.off("cardRemovedFromHand");
+			socket.off("cardPlayed");
+			socket.off("gameDeckCleared");
+			socket.off("handUpdated");
+		};
+	}, []);
 
 	return (
 		<>
@@ -296,15 +346,11 @@ function App() {
 					<div className="cardsInHand">
 						<p>Cards in hand:</p>
 						<div className="cards" id="CardsInHand">
-							{playerCards
-								? playerCards.map((card, index) => (
-										<button
-											key={index}
-											className={`card cardHand ${selectedCard === card ? "selected" : ""}`}
-											onClick={() => selectCard(card)}
-										>{`${card.rank} of ${card.suit}`}</button>
-								  ))
-								: null}
+							{hand.map((card, index) => (
+								<button class="card" key={index} onClick={() => selectCard(index)}>
+									{card.rank} of {card.suit}
+								</button>
+							))}
 						</div>
 					</div>
 				</div>

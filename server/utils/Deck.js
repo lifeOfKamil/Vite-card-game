@@ -1,22 +1,32 @@
 const suits = ["❤", "♦", "♣", "♠"];
 const ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
 
+let deck = [];
+
 function generateDeck() {
-	let deck = [];
+	deck = [];
 	for (const suit of suits) {
 		for (const rank of ranks) {
-			deck.push({ suit, rank });
+			deck.push({ suit, rank, id: `${rank}${suit}` });
 		}
 	}
 	return deck;
 }
 
-function shuffle(array) {
-	for (let i = array.length - 1; i > 0; i--) {
+function shuffle(deck) {
+	for (let i = deck.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
-		[array[i], array[j]] = [array[j], array[i]];
+		[deck[i], deck[j]] = [deck[j], deck[i]];
 	}
-	return array;
+	return deck;
 }
 
-module.exports = { generateDeck };
+function isDeckEmpty() {
+	return deck.length === 0;
+}
+
+function getDeckLength() {
+	return deck.length;
+}
+
+module.exports = { generateDeck, shuffle, isDeckEmpty, getDeckLength };
