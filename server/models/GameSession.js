@@ -6,11 +6,36 @@ class GameSession {
 		this.deck = shuffle(generateDeck());
 		this.gameDeck = [];
 		this.players = [];
+		this.currentTurnIndex = 0;
 	}
 
 	addPlayer(player) {
 		this.players.push(player);
 		this.dealInitialCards(player);
+		if (this.players.length === 1) {
+			this.currentTurnIndex = 0;
+		}
+	}
+
+	nextTurn() {
+		this.currentTurnIndex = (this.currentTurnIndex + 1) % this.players.length;
+		this.updateGameState();
+	}
+
+	updateGameState() {
+		const gameState = {
+			currentPlayerId: this.players[this.currentTurnIndex].id,
+			players: this.players.map((player) => ({
+				id: player.id,
+				hand: player.hand,
+				faceUpCards: player.faceUpCards,
+				faceDownCards: player.faceDownCards,
+				isTurn: player.id === this.players[this.currentTurnIndex].id,
+			})),
+		};
+		this.players.forEach((player) => {
+			player.socket.emit("gameState", gameState);
+		});
 	}
 
 	removePlayer(playerId) {
@@ -32,6 +57,7 @@ class GameSession {
 		player.hand = this.deck.splice(-3);
 		player.faceUpCards = this.deck.splice(-3);
 		player.faceDownCards = this.deck.splice(-3);
+		console.log("Player face up cards: ", player.faceUpCards);
 	}
 
 	drawCard(player) {
@@ -50,7 +76,9 @@ class GameSession {
 		if (player && cardIndex >= 0 && cardIndex < player.hand.length) {
 			const [playedCard] = player.hand.splice(cardIndex, 1);
 			this.gameDeck.push(playedCard);
-			this.drawCard(player);
+			if (player.hand.length < 3) {
+				this.drawCard(player);
+			}
 			console.log("Game deck: ", this.gameDeck);
 			return { playedCard, hand: player.hand };
 		} else {
