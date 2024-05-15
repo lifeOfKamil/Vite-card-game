@@ -12,7 +12,7 @@ function App() {
 	const [deck, setDeck] = useState([]); // dealer deck
 	const [users, setUsers] = useState([]);
 	const [playerCards, setPlayerCards] = useState([]); // cards in hand
-	const [player1_faceUpCards, setPlayer1_faceUpCards] = useState([]);
+	const [opponent_faceUpCards, setOpponent_faceUpCards] = useState([]);
 	const [player2_faceUpCards, setPlayer2_faceUpCards] = useState([]);
 	const [playerGambleCards, setPlayerGambleCards] = useState([]); // face down cards
 	const [selectedCard, setSelectedCard] = useState(null);
@@ -32,22 +32,38 @@ function App() {
 			/* your join game data */
 		});
 
-		socket.on("gameState", (data) => {
-			setPlayers(data.players);
-			// Assume data is structured to include your player data, including cards
-			const myPlayer = data.players.find((player) => player.id === socket.id);
-			if (myPlayer) {
-				setHand(myPlayer.hand);
-				setFaceUpCards(myPlayer.faceUpCards);
-				setFaceDownCards(myPlayer.faceDownCards);
-			}
-		});
-
 		// Clean up on component unmount
 		return () => {
 			socket.off("gameState");
 		};
 	}, []);
+
+	useEffect(() => {
+		const handleGameState = (data) => {
+			console.log("Game state received:", data);
+			setPlayers(data.players);
+
+			const myPlayer = data.players.find((player) => player.id === socket.id);
+			const opponentPlayer = data.players.find((player) => player.id !== socket.id);
+
+			if (myPlayer) {
+				setHand(myPlayer.hand);
+				setFaceUpCards(myPlayer.faceUpCards);
+				setFaceDownCards(myPlayer.faceDownCards);
+			}
+
+			if (opponentPlayer) {
+				setOpponent_faceUpCards(opponentPlayer.faceUpCards);
+				console.log("Opponent's face-up cards updated:", opponentPlayer.faceUpCards);
+			}
+		};
+
+		socket.on("gameState", handleGameState);
+
+		return () => {
+			socket.off("gameState", handleGameState);
+		};
+	}, [socket]);
 
 	useEffect(() => {
 		if (playerCards.length > 0) {
@@ -112,11 +128,6 @@ function App() {
 			}
 		});
 
-		socket.on("updateGambleCards", (p1_faceUpCards, p2_faceUpCards) => {
-			setPlayer1_faceUpCards(p1_faceUpCards);
-			setPlayer2_faceUpCards(p2_faceUpCards);
-		});
-
 		socket.on(
 			"gameData",
 			({ gameId, users }) => {
@@ -124,10 +135,6 @@ function App() {
 			},
 			[]
 		);
-
-		socket.on("reject", (message) => {
-			alert(message);
-		});
 
 		socket.on("playerNumber", (playerNumber) => {
 			setPlayerNumber(playerNumber);
@@ -155,7 +162,6 @@ function App() {
 			socket.off("updateGambleCards");
 			socket.off("gameData");
 			socket.off("cardDrawn");
-			socket.off("reject");
 			socket.off("startGame");
 			socket.off("playerNumber");
 			socket.off("yourTurn");
@@ -191,19 +197,13 @@ function App() {
 		socket.emit("pickUpCards");
 	};
 
-	const startGame = () => {
-		//const updatedDeck = [...deck];
-		//setDeck(updatedDeck);
-		socket.emit("startGame");
-	};
-
-	const renderFaceUpCards = (cards) => {
+	/*const renderFaceUpCards = (cards) => {
 		cards.map((card, index) => {
 			<button key={index} className="card face-up">
 				{`${card.rank} of ${card.suit}`}
 			</button>;
 		});
-	};
+	};*/
 
 	useEffect(() => {
 		socket.on("cardDrawnToHand", (card) => {
@@ -243,37 +243,35 @@ function App() {
 						<div className="userArea">
 							<div className="userInfo">
 								<h4>Opponent</h4>
-								<p>{users.length > 1 ? users[opponentIndex]?.id : "Waiting for Player"}</p>
+								<p>{users.length > 1 ? users[playerNumber % users.length]?.id : "Waiting for Player"}</p>
 							</div>
 							<div className="user-cards user-2">
-								{playerNumber === 1
-									? player2_faceUpCards.map((card, index) => (
-											<button key={index} className="card face-up">
-												{`${card.rank} of ${card.suit}`}
-											</button>
-									  ))
-									: player1_faceUpCards.map((card, index) => (
-											<button key={index} className="card face-up">
-												{`${card.rank} of ${card.suit}`}
-											</button>
-									  ))}
+								{opponent_faceUpCards.length > 0 ? (
+									opponent_faceUpCards.map((card, index) => (
+										<button className="card face-up" key={index}>
+											{`${card.rank} of ${card.suit}`}
+										</button>
+									))
+								) : (
+									<p>No face-up cards to display</p>
+								)}
 								<div className="gamble-cards user-2">
 									<img
 										className="card-back"
 										src={cardBack}
-										style={{ width: "168px", height: "245px" }}
+										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
 										alt="card back"
 									/>
 									<img
 										className="card-back"
 										src={cardBack}
-										style={{ width: "168px", height: "245px" }}
+										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
 										alt="card back"
 									/>
 									<img
 										className="card-back"
 										src={cardBack}
-										style={{ width: "168px", height: "245px" }}
+										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
 										alt="card back"
 									/>
 								</div>
@@ -284,9 +282,7 @@ function App() {
 								<button onClick={drawCard} className="playerButton">
 									Draw Card
 								</button>
-								<button onClick={startGame} className="playerButton">
-									Start
-								</button>
+								<button className="playerButton">Start</button>
 								<button onClick={submitSelectedCard} className="playerButton">
 									Submit
 								</button>
@@ -294,7 +290,12 @@ function App() {
 									Pick Up
 								</button>
 							</div>
-							<img className="card-back" src={cardBack} style={{ width: "168px", height: "245px" }} alt="card back" />
+							<img
+								className="card-back"
+								src={cardBack}
+								style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
+								alt="card back"
+							/>
 							<div className="deck">
 								<button className="card">
 									{gameDeck.length > 0
@@ -306,37 +307,32 @@ function App() {
 						<div className="userArea">
 							<div className="userInfo">
 								<h4>You</h4>
-								<p>{users.length > 0 ? users[(playerNumber - 1) % users.length]?.id : "Waiting for Player"}</p>
+								<p>ID: {socket.id}</p>
 							</div>
 							<div className="user-cards user-1">
-								{playerNumber === 1
-									? player1_faceUpCards.map((card, index) => (
-											<button key={index} className="card face-up">
-												{`${card.rank} of ${card.suit}`}
-											</button>
-									  ))
-									: player2_faceUpCards.map((card, index) => (
-											<button key={index} className="card face-up">
-												{`${card.rank} of ${card.suit}`}
-											</button>
-									  ))}
+								{playerNumber !== 1 &&
+									faceUpCards.map((card, index) => (
+										<button className="card face-up" key={index}>
+											{`${card.rank} of ${card.suit}`}
+										</button>
+									))}
 								<div className="gamble-cards user-1">
 									<img
 										className="card-back"
 										src={cardBack}
-										style={{ width: "168px", height: "245px" }}
+										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
 										alt="card back"
 									/>
 									<img
 										className="card-back"
 										src={cardBack}
-										style={{ width: "168px", height: "245px" }}
+										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
 										alt="card back"
 									/>
 									<img
 										className="card-back"
 										src={cardBack}
-										style={{ width: "168px", height: "245px" }}
+										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
 										alt="card back"
 									/>
 								</div>
@@ -347,7 +343,7 @@ function App() {
 						<p>Cards in hand:</p>
 						<div className="cards" id="CardsInHand">
 							{hand.map((card, index) => (
-								<button class="card" key={index} onClick={() => selectCard(index)}>
+								<button className="card" key={index} onClick={() => selectCard(index)}>
 									{card.rank} of {card.suit}
 								</button>
 							))}
@@ -357,6 +353,14 @@ function App() {
 			</div>
 		</>
 	);
+}
+
+function renderFaceUpCards(player) {
+	return player.faceUpCards.map((card, index) => (
+		<button key={index} className="card face-up">
+			{`${card.rank} of ${card.suit}`}
+		</button>
+	));
 }
 
 export default App;
