@@ -40,7 +40,7 @@ io.on("connection", (socket) => {
 	connectedUsers.push({ id: socket.id, gameId });
 	console.log("👥: Connected users: ", connectedUsers);
 
-	socket.emit("gameState", {
+	io.in(gameId).emit("gameState", {
 		players: gameSessions[gameId].players.map((player) => ({
 			id: player.id,
 			hand: player.hand,
