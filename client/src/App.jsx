@@ -91,8 +91,8 @@ function App() {
 			const cardBackElements = document.getElementsByClassName("card-back");
 			for (let i = 0; i < cardBackElements.length; i++) {
 				cardBackElements[i].src = cardBack;
-				cardBackElements[i].style.width = "168px";
-				cardBackElements[i].style.height = "245px";
+				cardBackElements[i].style.width = "10vw";
+				cardBackElements[i].style.height = "calc(10vw * 1.4)";
 			}
 		});
 
