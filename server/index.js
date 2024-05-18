@@ -47,6 +47,7 @@ io.on("connection", (socket) => {
 			faceUpCards: player.faceUpCards,
 			faceDownCards: player.faceDownCards,
 		})),
+		deckLength: gameSessions[gameId].deck.length,
 	});
 
 	socket.on("addCardToHand", (card) => {
@@ -59,39 +60,21 @@ io.on("connection", (socket) => {
 		}
 	});
 
-	socket.on("startGame", () => {
-		let players = connectedUsers.filter((user) => user.gameId === gameId);
-
-		const playersInGame = connectedUsers.filter((user) => user.gameId === gameId);
-		if (playersInGame.length === 2) {
-			players.forEach((player, index) => {
-				io.to(player.id).emit("playerNumber", index + 1);
-				io.to(player.id).emit("startGame", {
-					playerNumber: index + 1,
-					p1_faceUpCards,
-					p2_faceUpCards,
-				});
-				console.log(`Player ${player.id} with face up cards: `, index === 0 ? p1_faceUpCards : p2_faceUpCards);
-			});
-
-			console.log(`Game started: gameID: ${gameId}`);
-
-			io.to(gameId).emit("updateDeck", decks[gameId]);
-			io.to(gameId).emit("updateGambleCards", p1_faceUpCards, p2_faceUpCards);
-		} else {
-			console.log(`Waiting for more players to join the game : gameID: ${gameId}`);
-		}
-	});
-
 	socket.on("playCard", (cardIndex) => {
 		const gameId = findGameIdByPlayerId(socket.id);
 		const gameSession = gameSessions[gameId];
-		//const player = gameSession.players.find((p) => p.id === socket.id);
 
 		try {
 			const { playedCard, hand } = gameSession.playCard(socket.id, cardIndex);
 			socket.emit("handUpdated", hand);
-			io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
+
+			if (playedCard.rank === 10) {
+				io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
+				gameSession.gameDeck = [];
+				io.in(gameId).emit("gameDeckCleared");
+			} else {
+				io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
+			}
 		} catch (error) {
 			socket.emit("error", error.message);
 		}
