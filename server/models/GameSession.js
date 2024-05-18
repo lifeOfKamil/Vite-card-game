@@ -74,8 +74,18 @@ class GameSession {
 		const player = this.players.find((p) => p.id === playerId);
 
 		if (player && cardIndex >= 0 && cardIndex < player.hand.length) {
-			const [playedCard] = player.hand.splice(cardIndex, 1);
+			const playedCard = player.hand.splice(cardIndex, 1)[0];
 			this.gameDeck.push(playedCard);
+
+			if (playedCard.rank === "10") {
+				// Clear the game deck if the played card is 10
+				this.gameDeck = [];
+				this.drawCard(player);
+				this.players.forEach((p) => {
+					p.socket.emit("gameDeckCleared");
+				});
+			}
+
 			if (player.hand.length < 3) {
 				this.drawCard(player);
 			}
