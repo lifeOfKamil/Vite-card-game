@@ -22,26 +22,17 @@ function App() {
 
 	const [players, setPlayers] = useState([]);
 	const [gameDeck, setGameDeck] = useState([]);
+	const [deckLength, setDeckLength] = useState(0);
 	const [hand, setHand] = useState([]);
 	const [faceUpCards, setFaceUpCards] = useState([]);
 	const [faceDownCards, setFaceDownCards] = useState([]);
 	const [selectedCardIndex, setSelectedCardIndex] = useState(null);
 
 	useEffect(() => {
-		socket.emit("joinGame", {
-			/* your join game data */
-		});
-
-		// Clean up on component unmount
-		return () => {
-			socket.off("gameState");
-		};
-	}, []);
-
-	useEffect(() => {
 		const handleGameState = (data) => {
 			console.log("Game state received:", data);
 			setPlayers(data.players);
+			setDeckLength(data.deckLength);
 
 			const myPlayer = data.players.find((player) => player.id === socket.id);
 			const opponentPlayer = data.players.find((player) => player.id !== socket.id);
@@ -54,7 +45,6 @@ function App() {
 
 			if (opponentPlayer) {
 				setOpponent_faceUpCards(opponentPlayer.faceUpCards);
-				console.log("Opponent's face-up cards updated:", opponentPlayer.faceUpCards);
 			}
 		};
 
@@ -86,13 +76,24 @@ function App() {
 	}, []);
 
 	useEffect(() => {
+		socket.on("gameDeckCleared", () => {
+			setGameDeck([]);
+			console.log("Game deck has been cleared");
+		});
+
+		return () => {
+			socket.off("gameDeckCleared");
+		};
+	}, [socket]);
+
+	useEffect(() => {
 		socket.emit("requestDeck");
 		socket.on("connect", () => {
 			const cardBackElements = document.getElementsByClassName("card-back");
 			for (let i = 0; i < cardBackElements.length; i++) {
 				cardBackElements[i].src = cardBack;
-				cardBackElements[i].style.width = "168px";
-				cardBackElements[i].style.height = "245px";
+				cardBackElements[i].style.width = "10vw";
+				cardBackElements[i].style.height = "calc(10vw * 1.4)";
 			}
 		});
 
@@ -165,6 +166,7 @@ function App() {
 			socket.off("startGame");
 			socket.off("playerNumber");
 			socket.off("yourTurn");
+			socket.off("gameState");
 		};
 	}, []);
 
@@ -222,15 +224,10 @@ function App() {
 			setGameDeck(newGameDeck);
 		});
 
-		socket.on("gameDeckCleared", () => {
-			setGameDeck([]);
-		});
-
 		return () => {
 			socket.off("cardDrawnToHand");
 			socket.off("cardRemovedFromHand");
 			socket.off("cardPlayed");
-			socket.off("gameDeckCleared");
 			socket.off("handUpdated");
 		};
 	}, []);
@@ -296,6 +293,7 @@ function App() {
 								style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
 								alt="card back"
 							/>
+							<p style={{ color: "#fcfcfc" }}>{deckLength}</p>
 							<div className="deck">
 								<button className="card">
 									{gameDeck.length > 0
