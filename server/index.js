@@ -63,18 +63,37 @@ io.on("connection", (socket) => {
 	socket.on("playCard", (cardIndex) => {
 		const gameId = findGameIdByPlayerId(socket.id);
 		const gameSession = gameSessions[gameId];
+		seven_or_lower = false;
 
 		try {
 			const { playedCard, hand } = gameSession.playCard(socket.id, cardIndex);
 			socket.emit("handUpdated", hand);
 
-			if (playedCard.rank === 10) {
-				io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
-				gameSession.gameDeck = [];
-				io.in(gameId).emit("gameDeckCleared");
-			} else {
-				io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
+			if (seven_or_lower === true) {
 			}
+
+			if (playedCard.rank === "10") {
+				//io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
+				console.log("Received rank 10, clearing deck on server");
+				io.in(gameId).emit("gameDeckCleared");
+				gameSession.gameDeck = [];
+				//socket.emit("gameDeckUpdated", gameSession.gameDeck);
+			} else if (playedCard.rank === "7") {
+				seven_or_lower = true;
+				console.log("Received rank 7, next card must be 7 or lower");
+			}
+
+			io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
+
+			io.in(gameId).emit("gameState", {
+				players: gameSessions[gameId].players.map((player) => ({
+					id: player.id,
+					hand: player.hand,
+					faceUpCards: player.faceUpCards,
+					faceDownCards: player.faceDownCards,
+				})),
+				deckLength: gameSessions[gameId].deck.length,
+			});
 		} catch (error) {
 			socket.emit("error", error.message);
 		}
@@ -87,7 +106,7 @@ io.on("connection", (socket) => {
 		try {
 			const newHand = gameSession.pickUpCards(socket.id);
 			socket.emit("handUpdated", newHand);
-			io.in(gameId).emit("gameDeckCleared");
+			io.in(gameId).emit("gameDeckEmpty");
 		} catch (error) {
 			socket.emit("error", "Failed to pick up cards");
 		}
