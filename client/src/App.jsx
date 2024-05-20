@@ -2,6 +2,7 @@ import react, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { Deck } from "./components/Deck";
 import cardBack from "./assets/Card_back.png";
+import Popup from "./components/Popup";
 
 const socket = io("http://localhost:3000");
 
@@ -14,7 +15,6 @@ function App() {
 	const [playerCards, setPlayerCards] = useState([]); // cards in hand
 	const [opponent_faceUpCards, setOpponent_faceUpCards] = useState([]);
 	const [player2_faceUpCards, setPlayer2_faceUpCards] = useState([]);
-	const [playerGambleCards, setPlayerGambleCards] = useState([]); // face down cards
 	const [selectedCard, setSelectedCard] = useState(null);
 	const [playerNumber, setPlayerNumber] = useState(null);
 
@@ -27,6 +27,7 @@ function App() {
 	const [faceUpCards, setFaceUpCards] = useState([]);
 	const [faceDownCards, setFaceDownCards] = useState([]);
 	const [selectedCardIndex, setSelectedCardIndex] = useState(null);
+	const [popupMessage, setPopupMessage] = useState("");
 
 	useEffect(() => {
 		const handleGameState = (data) => {
@@ -79,10 +80,23 @@ function App() {
 		socket.on("gameDeckCleared", () => {
 			setGameDeck([]);
 			console.log("Game deck has been cleared");
+			setPopupMessage("Game deck has been cleared by a 10!");
+			setTimeout(() => setPopupMessage(""), 2500);
 		});
 
 		return () => {
 			socket.off("gameDeckCleared");
+		};
+	}, [socket]);
+
+	useEffect(() => {
+		socket.on("gameDeckEmpty", () => {
+			setGameDeck([]);
+			console.log("Game deck has been cleared");
+		});
+
+		return () => {
+			socket.off("gameDeckEmpty");
 		};
 	}, [socket]);
 
@@ -160,7 +174,6 @@ function App() {
 			socket.off("updateCards");
 			socket.off("updateGameDeck");
 			socket.off("updatePlayerCards");
-			socket.off("updateGambleCards");
 			socket.off("gameData");
 			socket.off("cardDrawn");
 			socket.off("startGame");
@@ -196,6 +209,7 @@ function App() {
 	};
 
 	const pickUpCards = () => {
+		setGameDeck([]);
 		socket.emit("pickUpCards");
 	};
 
@@ -214,6 +228,11 @@ function App() {
 
 		socket.on("handUpdated", (newHand) => {
 			setHand(newHand);
+		});
+
+		socket.on("gameDeckUpdated", (newGameDeck) => {
+			setGameDeck(newGameDeck);
+			console.log("Game deck updated: ", newGameDeck);
 		});
 
 		socket.on("cardRemovedFromHand", (removedCard) => {
@@ -349,6 +368,7 @@ function App() {
 					</div>
 				</div>
 			</div>
+			{popupMessage && <Popup message={popupMessage} onClose={() => setPopupMessage("")} />}{" "}
 		</>
 	);
 }
