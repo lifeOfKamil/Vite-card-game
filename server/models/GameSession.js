@@ -7,6 +7,7 @@ class GameSession {
 		this.gameDeck = [];
 		this.players = [];
 		this.currentTurnIndex = 0;
+		this.sevenPlayed = false;
 	}
 
 	addPlayer(player) {
@@ -78,15 +79,17 @@ class GameSession {
 			this.gameDeck.push(playedCard);
 
 			if (playedCard.rank === "10") {
-				// Clear the game deck if the played card is 10
+				// Discard deck if a 10 is played
+				console.log("10 played, clearing game deck");
 				this.gameDeck = [];
-				this.drawCard(player);
-				this.players.forEach((p) => {
-					p.socket.emit("gameDeckCleared");
-				});
+				if (this.deck.length > 0) {
+					this.drawCard(player);
+				}
+			} else if (playedCard.rank === "7") {
+				this.sevenPlayed = true;
 			}
 
-			if (player.hand.length < 3) {
+			if (player.hand.length < 3 && this.deck.length > 0) {
 				this.drawCard(player);
 			}
 			console.log("Game deck: ", this.gameDeck);
