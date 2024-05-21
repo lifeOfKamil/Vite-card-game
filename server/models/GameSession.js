@@ -73,25 +73,37 @@ class GameSession {
 
 	playCard(playerId, cardIndex) {
 		const player = this.players.find((p) => p.id === playerId);
+		const currentTopCard = this.gameDeck[this.gameDeck.length - 1] || null;
 
 		if (player && cardIndex >= 0 && cardIndex < player.hand.length) {
 			const playedCard = player.hand.splice(cardIndex, 1)[0];
+
+			if (this.sevenPlayed && parseInt(playedCard.rank) > 7 && parseInt(playedCard.rank) !== 10) {
+				player.hand.splice(cardIndex, 0, playedCard); // Put the card back in hand
+				const errorMessage = "You must play a 7 or lower after a 7 has been played";
+				player.socket.emit("error", errorMessage);
+				throw new Error(errorMessage);
+			}
+
 			this.gameDeck.push(playedCard);
 
 			if (playedCard.rank === "10") {
 				// Discard deck if a 10 is played
-				console.log("10 played, clearing game deck");
 				this.gameDeck = [];
+				this.sevenPlayed = false; // Reset sevenPlayed state
 				if (this.deck.length > 0) {
 					this.drawCard(player);
 				}
 			} else if (playedCard.rank === "7") {
 				this.sevenPlayed = true;
+			} else {
+				this.sevenPlayed = false; // Reset sevenPlayed state
 			}
 
 			if (player.hand.length < 3 && this.deck.length > 0) {
 				this.drawCard(player);
 			}
+
 			console.log("Game deck: ", this.gameDeck);
 			return { playedCard, hand: player.hand };
 		} else {
