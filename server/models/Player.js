@@ -1,6 +1,7 @@
 class Player {
-	constructor(id) {
+	constructor(id, socket) {
 		this.id = id;
+		this.socket = socket;
 		this.hand = [];
 		this.faceUpCards = [];
 		this.faceDownCards = [];
