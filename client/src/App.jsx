@@ -101,6 +101,14 @@ function App() {
 	}, [socket]);
 
 	useEffect(() => {
+		socket.on("error", (error) => {
+			console.log("Error: ", error);
+			setPopupMessage(error);
+			setTimeout(() => setPopupMessage(""), 2500);
+		});
+	}, [socket]);
+
+	useEffect(() => {
 		socket.emit("requestDeck");
 		socket.on("connect", () => {
 			const cardBackElements = document.getElementsByClassName("card-back");
