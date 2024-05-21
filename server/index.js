@@ -31,7 +31,7 @@ io.on("connection", (socket) => {
 		console.log(`🎴: Deck generated for game ${gameId}`);
 	}
 
-	const player = new Player(socket.id);
+	const player = new Player(socket.id, socket);
 	gameSessions[gameId].addPlayer(player);
 
 	socket.join(gameId);
@@ -63,14 +63,11 @@ io.on("connection", (socket) => {
 	socket.on("playCard", (cardIndex) => {
 		const gameId = findGameIdByPlayerId(socket.id);
 		const gameSession = gameSessions[gameId];
-		seven_or_lower = false;
+		//seven_or_lower = false;
 
 		try {
 			const { playedCard, hand } = gameSession.playCard(socket.id, cardIndex);
 			socket.emit("handUpdated", hand);
-
-			if (seven_or_lower === true) {
-			}
 
 			if (playedCard.rank === "10") {
 				//io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
@@ -79,7 +76,6 @@ io.on("connection", (socket) => {
 				gameSession.gameDeck = [];
 				//socket.emit("gameDeckUpdated", gameSession.gameDeck);
 			} else if (playedCard.rank === "7") {
-				seven_or_lower = true;
 				console.log("Received rank 7, next card must be 7 or lower");
 			}
 
