@@ -17,18 +17,22 @@ body,
 .gameBoard {
 	position: relative;
 	display: flex;
-	flex-direction: row;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 	background-color: #373737;
+	height: 100%;
+	width: 100%;
 }
 
 .cardsInPlay {
+	padding-top: 64px;
 	display: flex;
 	flex-direction: column;
 	justify-content: space-evenly;
 	gap: 40px;
 	height: 100%;
+	width: 100%;
 	flex: 2;
 }
 
@@ -56,8 +60,11 @@ body,
 
 .userInfo {
 	position: absolute;
+	display: flex;
+	flex-direction: row;
 	bottom: 24px;
 	left: 24px;
+	z-index: 100;
 }
 
 .dealerArea {
@@ -69,11 +76,11 @@ body,
 }
 
 .buttonContainer {
-	position: absolute;
-	top: 0;
-	right: 0;
-	margin-top: 24px;
-	margin-right: 24px;
+	display: flex;
+	gap: 16px;
+	justify-content: center;
+	position: relative;
+	margin-bottom: 24px;
 }
 
 .user-cards {
@@ -87,9 +94,9 @@ body,
 	border: 1px solid #e0e0e0;
 	border-radius: 4px;
 	background-color: #fff;
-	width: 10vw;
-	height: calc(10vw * 1.4);
-	font-size: 1.25rem;
+	width: 20vw;
+	height: calc(20vw * 1.4);
+	font-size: 0.825rem;
 	color: #121212;
 
 	&.selected {
@@ -105,6 +112,8 @@ body,
 .card-back {
 	margin-inline: 8px;
 	z-index: 1;
+	width: 20vw;
+	height: calc(20vw * 1.4);
 }
 
 .gamble-cards {
@@ -127,6 +136,11 @@ body,
 }
 
 .cardsInHand {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+	background-color: #1f1f1f;
 	.card {
 		margin-right: 8px;
 	}
@@ -161,4 +175,38 @@ body,
 
 .popup-content button {
 	margin-top: 10px;
+}
+
+@media screen and (min-width: 1200px) {
+	.gameBoard {
+		flex-direction: row;
+	}
+
+	.card {
+		font-size: 1.25em;
+		width: 10vw;
+		height: calc(10vw * 1.4);
+	}
+
+	.card-back {
+		width: 10vw;
+		height: calc(10vw * 1.4);
+	}
+
+	.cardsInHand {
+		height: 100%;
+		padding-top: 50vh;
+	}
+
+	.buttonContainer {
+		position: absolute;
+		top: 0;
+		right: 0;
+		margin-top: 24px;
+		margin-right: 24px;
+	}
+
+	.cardsInPlay {
+		padding-top: 0;
+	}
 }
