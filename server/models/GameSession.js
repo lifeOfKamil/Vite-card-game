@@ -71,6 +71,18 @@ class GameSession {
 		}
 	}
 
+	addFaceDownCardToHand(playerId) {
+		const player = this.players.find((p) => p.id === playerId);
+
+		if (player && player.hand.length === 0 && player.faceDownCards.length > 0) {
+			const card = player.faceDownCards.pop();
+			player.hand.push(card);
+			return card;
+		} else {
+			throw new Error("Player not found or no face down cards to draw");
+		}
+	}
+
 	playCard(playerId, cardIndex) {
 		const player = this.players.find((p) => p.id === playerId);
 		const currentTopCard = this.gameDeck[this.gameDeck.length - 1] || null;
@@ -91,8 +103,12 @@ class GameSession {
 				// Discard deck if a 10 is played
 				this.gameDeck = [];
 				this.sevenPlayed = false; // Reset sevenPlayed state
-				if (this.deck.length > 0) {
+				if (this.deck.length > 0 && player.hand.length < 3) {
 					this.drawCard(player);
+				} else if (this.deck.length === 0 && player.hand.length === 0) {
+					player.hand = player.hand.concat(player.faceUpCards);
+					console.log(player.hand);
+					player.faceUpCards = [];
 				}
 			} else if (playedCard.rank === "7") {
 				this.sevenPlayed = true;
