@@ -110,14 +110,6 @@ function App() {
 
 	useEffect(() => {
 		socket.emit("requestDeck");
-		socket.on("connect", () => {
-			const cardBackElements = document.getElementsByClassName("card-back");
-			for (let i = 0; i < cardBackElements.length; i++) {
-				cardBackElements[i].src = cardBack;
-				cardBackElements[i].style.width = "10vw";
-				cardBackElements[i].style.height = "calc(10vw * 1.4)";
-			}
-		});
 
 		socket.on("deckGenerated", (generatedDeck) => {
 			setDeck(generatedDeck);
@@ -280,46 +272,14 @@ function App() {
 									<p>No face-up cards to display</p>
 								)}
 								<div className="gamble-cards user-2">
-									<img
-										className="card-back"
-										src={cardBack}
-										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
-										alt="card back"
-									/>
-									<img
-										className="card-back"
-										src={cardBack}
-										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
-										alt="card back"
-									/>
-									<img
-										className="card-back"
-										src={cardBack}
-										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
-										alt="card back"
-									/>
+									<img className="card-back" src={cardBack} alt="card back" />
+									<img className="card-back" src={cardBack} alt="card back" />
+									<img className="card-back" src={cardBack} alt="card back" />
 								</div>
 							</div>
 						</div>
 						<div className="dealerArea">
-							<div className="buttonContainer">
-								<button onClick={drawCard} className="playerButton">
-									Draw Card
-								</button>
-								<button className="playerButton">Start</button>
-								<button onClick={submitSelectedCard} className="playerButton">
-									Submit
-								</button>
-								<button onClick={pickUpCards} className="playerButton">
-									Pick Up
-								</button>
-							</div>
-							<img
-								className="card-back"
-								src={cardBack}
-								style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
-								alt="card back"
-							/>
+							<img className="card-back" src={cardBack} alt="card back" />
 							<p style={{ color: "#fcfcfc" }}>{deckLength}</p>
 							<div className="deck">
 								<button className="card">
@@ -342,26 +302,25 @@ function App() {
 										</button>
 									))}
 								<div className="gamble-cards user-1">
-									<img
-										className="card-back"
-										src={cardBack}
-										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
-										alt="card back"
-									/>
-									<img
-										className="card-back"
-										src={cardBack}
-										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
-										alt="card back"
-									/>
-									<img
-										className="card-back"
-										src={cardBack}
-										style={{ width: "10vw", height: "calc(10vw * 1.4)" }}
-										alt="card back"
-									/>
+									<img className="card-back" src={cardBack} alt="card back" />
+									<img className="card-back" src={cardBack} alt="card back" />
+									<img className="card-back" src={cardBack} alt="card back" />
 								</div>
 							</div>
+						</div>
+						<div className="buttonContainer">
+							<button onClick={drawCard} style={{ display: "none" }} className="playerButton">
+								Draw Card
+							</button>
+							<button style={{ display: "none" }} className="playerButton">
+								Start
+							</button>
+							<button onClick={submitSelectedCard} className="playerButton">
+								Submit
+							</button>
+							<button onClick={pickUpCards} className="playerButton">
+								Pick Up
+							</button>
 						</div>
 					</div>
 					<div className="cardsInHand">
