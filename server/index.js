@@ -33,6 +33,7 @@ io.on("connection", (socket) => {
 
 	const player = new Player(socket.id, socket);
 	gameSessions[gameId].addPlayer(player);
+	gameSessions[gameId].setInitialPlayer();
 
 	socket.join(gameId);
 	console.log(`🎮: User ${socket.id} joined ${gameId}`);
@@ -41,6 +42,7 @@ io.on("connection", (socket) => {
 	console.log("👥: Connected users: ", connectedUsers);
 
 	io.in(gameId).emit("gameState", {
+		currentPlayerId: gameSessions[gameId].currentPlayerId,
 		players: gameSessions[gameId].players.map((player) => ({
 			id: player.id,
 			hand: player.hand,
@@ -63,7 +65,6 @@ io.on("connection", (socket) => {
 	socket.on("playCard", (cardIndex) => {
 		const gameId = findGameIdByPlayerId(socket.id);
 		const gameSession = gameSessions[gameId];
-		//seven_or_lower = false;
 
 		try {
 			const { playedCard, hand } = gameSession.playCard(socket.id, cardIndex);
@@ -72,16 +73,22 @@ io.on("connection", (socket) => {
 			if (playedCard.rank === "10") {
 				//io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
 				console.log("Received rank 10, clearing deck on server");
-				io.in(gameId).emit("gameDeckCleared");
 				gameSession.gameDeck = [];
+				io.in(gameId).emit("gameDeckCleared");
 				//socket.emit("gameDeckUpdated", gameSession.gameDeck);
 			} else if (playedCard.rank === "7") {
 				console.log("Received rank 7, next card must be 7 or lower");
+			} else if (playedCard.rank === "2") {
+				console.log("Received rank 2, must play another card");
+				socket.emit("playAnotherCard");
+				return;
 			}
 
-			io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
+			gameSession.nextPlayer();
 
+			io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
 			io.in(gameId).emit("gameState", {
+				currentPlayerId: gameSession.currentPlayerId,
 				players: gameSessions[gameId].players.map((player) => ({
 					id: player.id,
 					hand: player.hand,
@@ -115,14 +122,6 @@ io.on("connection", (socket) => {
 
 	socket.on("message", (data) => {
 		console.log("message data", data);
-	});
-
-	socket.on("gambleCards", () => {
-		// Example of handling gamble cards, adjust according to your game logic
-		const cards = decks[gameId].splice(decks[gameId].length - 3, 3); // Take the last three cards from the deck
-		playerGambleCards[socket.id] = cards;
-		socket.emit("updateGambleCards", cards); // Update the player who drew the gamble cards
-		io.to(gameId).emit("updateDeck", decks[gameId]); // Update all players with the new deck state
 	});
 
 	socket.on("submitCard", (card) => {
