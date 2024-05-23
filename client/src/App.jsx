@@ -9,6 +9,7 @@ const socket = io("http://localhost:3000");
 function App() {
 	const [myCards, setMyCards] = useState([]);
 	const [isMyTurn, setIsMyTurn] = useState(false);
+	const [mustPlayAnotherCard, setMustPlayAnotherCard] = useState(false); // New state for tracking if another card must be played
 
 	const [deck, setDeck] = useState([]); // dealer deck
 	const [users, setUsers] = useState([]);
@@ -42,6 +43,7 @@ function App() {
 				setHand(myPlayer.hand);
 				setFaceUpCards(myPlayer.faceUpCards);
 				setFaceDownCards(myPlayer.faceDownCards);
+				setIsMyTurn(data.currentPlayerId === socket.id);
 			}
 
 			if (opponentPlayer) {
@@ -193,6 +195,9 @@ function App() {
 
 	const playCard = (cardIndex) => {
 		socket.emit("playCard", cardIndex);
+		if (mustPlayAnotherCard) {
+			setMustPlayAnotherCard(false);
+		}
 	};
 
 	const updatePlayerCards = (cards) => {
@@ -243,11 +248,19 @@ function App() {
 			setGameDeck(newGameDeck);
 		});
 
+		socket.on("playAnotherCard", () => {
+			setMustPlayAnotherCard(true);
+			setPopupMessage("You must play another card after playing a 2!");
+			setTimeout(() => setPopupMessage(""), 2500);
+		});
+
 		return () => {
 			socket.off("cardDrawnToHand");
 			socket.off("cardRemovedFromHand");
 			socket.off("cardPlayed");
 			socket.off("handUpdated");
+			socket.off("gameDeckUpdated");
+			socket.off("playAnotherCard");
 		};
 	}, []);
 
@@ -309,16 +322,16 @@ function App() {
 							</div>
 						</div>
 						<div className="buttonContainer">
-							<button onClick={drawCard} style={{ display: "none" }} className="playerButton">
+							<button style={{ display: "none" }} onClick={drawCard} className="playerButton" disabled={!isMyTurn}>
 								Draw Card
 							</button>
-							<button style={{ display: "none" }} className="playerButton">
+							<button style={{ display: "none" }} className="playerButton" disabled={!isMyTurn}>
 								Start
 							</button>
-							<button onClick={submitSelectedCard} className="playerButton">
+							<button onClick={submitSelectedCard} className="playerButton" disabled={!isMyTurn}>
 								Submit
 							</button>
-							<button onClick={pickUpCards} className="playerButton">
+							<button onClick={pickUpCards} className="playerButton" disabled={!isMyTurn}>
 								Pick Up
 							</button>
 						</div>
