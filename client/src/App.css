@@ -130,9 +130,16 @@ body,
 	}
 }
 
-.card:hover {
+.card:hover,
+.card-hover {
 	transform: scale(1.05);
 	border: 2px solid #646cff !important;
+}
+
+.inactive-card {
+	opacity: 0.85;
+	pointer-events: none; /* Disables clicking */
+	cursor: not-allowed; /* Changes the cursor to indicate the card is not active */
 }
 
 .cardsInHand {
