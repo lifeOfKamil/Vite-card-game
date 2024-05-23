@@ -7,19 +7,36 @@ class GameSession {
 		this.gameDeck = [];
 		this.players = [];
 		this.currentTurnIndex = 0;
+		this.currentPlayerId = null;
 		this.sevenPlayed = false;
+		this.twoPlayed = false;
+	}
+
+	setInitialPlayer() {
+		this.currentPlayerId = this.players[0].id;
+	}
+
+	nextPlayer() {
+		if (this.currentTurnIndex === 0) {
+			this.currentTurnIndex = 1;
+		} else if (this.currentTurnIndex === 1) {
+			this.currentTurnIndex = 0;
+		}
+		console.log("current turn index: ", this.currentTurnIndex);
+		this.currentPlayerId = this.players[this.currentTurnIndex].id;
+		this.updateGameState();
 	}
 
 	addPlayer(player) {
 		this.players.push(player);
 		this.dealInitialCards(player);
-		if (this.players.length === 1) {
-			this.currentTurnIndex = 0;
+		if (this.players.length === 2) {
+			this.emitInitialGamesState();
 		}
 	}
 
-	nextTurn() {
-		this.currentTurnIndex = (this.currentTurnIndex + 1) % this.players.length;
+	emitInitialGamesState() {
+		this.nextPlayer();
 		this.updateGameState();
 	}
 
@@ -34,6 +51,7 @@ class GameSession {
 				isTurn: player.id === this.players[this.currentTurnIndex].id,
 			})),
 		};
+		console.log("Current player's turn: ", this.players[this.currentTurnIndex].id);
 		this.players.forEach((player) => {
 			player.socket.emit("gameState", gameState);
 		});
@@ -89,38 +107,54 @@ class GameSession {
 
 		if (player && cardIndex >= 0 && cardIndex < player.hand.length) {
 			const playedCard = player.hand.splice(cardIndex, 1)[0];
+			const playedRank = parseInt(playedCard.rank);
 
-			if (this.sevenPlayed && parseInt(playedCard.rank) > 7 && parseInt(playedCard.rank) !== 10) {
+			if (this.sevenPlayed && parseInt(playedRank) > 7 && parseInt(playedRank) !== 10) {
 				player.hand.splice(cardIndex, 0, playedCard); // Put the card back in hand
 				const errorMessage = "You must play a 7 or lower after a 7 has been played";
 				player.socket.emit("error", errorMessage);
 				throw new Error(errorMessage);
 			}
 
+			while (!this.sevenPlayed) {
+				if (currentTopCard && playedRank < parseInt(currentTopCard.rank) && ![2, 10].includes(playedRank)) {
+					player.hand.splice(cardIndex, 0, playedCard); // Put the card back in hand
+					const errorMessage = `You must play a card of equal or higher rank than the current top card (${currentTopCard.rank}).`;
+					player.socket.emit("error", errorMessage);
+					throw new Error(errorMessage);
+				}
+				break;
+			}
+
 			this.gameDeck.push(playedCard);
 
-			if (playedCard.rank === "10") {
+			if (playedRank === "10") {
 				// Discard deck if a 10 is played
 				this.gameDeck = [];
 				this.sevenPlayed = false; // Reset sevenPlayed state
-				if (this.deck.length > 0 && player.hand.length < 3) {
-					this.drawCard(player);
-				} else if (this.deck.length === 0 && player.hand.length === 0) {
-					player.hand = player.hand.concat(player.faceUpCards);
-					console.log(player.hand);
-					player.faceUpCards = [];
-				}
-			} else if (playedCard.rank === "7") {
+				this.twoPlayed = false; // Reset twoPlayed state
+			} else if (playedRank === "7") {
 				this.sevenPlayed = true;
+			} else if (playedRank === "2") {
+				this.twoPlayed = true;
+				player.socket.emit("playAnotherCard");
 			} else {
-				this.sevenPlayed = false; // Reset sevenPlayed state
+				this.sevenPlayed = playedCard.rank === "7";
 			}
 
-			if (player.hand.length < 3 && this.deck.length > 0) {
+			if (!this.twoPlayed) {
+				this.updateGameState();
+			}
+
+			if (this.deck.length > 0 && player.hand.length < 3) {
 				this.drawCard(player);
+			} else if (this.deck.length === 0 && player.hand.length === 0) {
+				player.hand = player.hand.concat(player.faceUpCards);
+				console.log(player.hand);
+				player.faceUpCards = [];
 			}
 
-			console.log("Game deck: ", this.gameDeck);
+			//console.log("Game deck: ", this.gameDeck);
 			return { playedCard, hand: player.hand };
 		} else {
 			throw new Error("Player or card not found");
@@ -129,6 +163,10 @@ class GameSession {
 
 	pickUpCards(playerId) {
 		const player = this.players.find((p) => p.id === playerId);
+		this.sevenPlayed = false; // Reset sevenPlayed state
+		this.twoPlayed = false; // Reset twoPlayed state
+
+		this.nextPlayer();
 
 		if (player) {
 			player.hand = player.hand.concat(this.gameDeck);
