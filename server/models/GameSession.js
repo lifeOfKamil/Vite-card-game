@@ -161,6 +161,24 @@ class GameSession {
 		}
 	}
 
+	playFaceDownCard(playerId, cardIndex) {
+		const player = this.players.find((p) => p.id === playerId);
+		if (!player) throw new Error("Player not found");
+
+		if (cardIndex < 0 || cardIndex >= player.faceDownCards.length) {
+			throw new Error("Invalid card index");
+		}
+
+		const card = player.faceDownCards.splice(cardIndex, 1)[0]; // Remove the card from faceDownCards
+		this.gameDeck.push(card); // Add to gameDeck, assuming this is how you manage played cards
+
+		// After playing a face-down card, check game rules, e.g., if a special card like a 2 or 10 was played
+		this.handleSpecialCards(card, playerId);
+
+		this.updateGameState(); // Send updated game state to all players
+		return card;
+	}
+
 	pickUpCards(playerId) {
 		const player = this.players.find((p) => p.id === playerId);
 		this.sevenPlayed = false; // Reset sevenPlayed state
