@@ -102,6 +102,15 @@ io.on("connection", (socket) => {
 		}
 	});
 
+	socket.on("playFaceDownCard", ({ index, playerId }) => {
+		try {
+			const card = gameSession.playFaceDownCard(playerId, index);
+			socket.emit("cardPlayed", { card });
+		} catch (error) {
+			socket.emit("error", error.message);
+		}
+	});
+
 	socket.on("pickUpCards", () => {
 		const gameId = findGameIdByPlayerId(socket.id);
 		const gameSession = gameSessions[gameId];
