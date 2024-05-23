@@ -269,7 +269,7 @@ function App() {
 										</button>
 									))
 								) : (
-									<p>No face-up cards to display</p>
+									<p>Face-up cards picked up</p>
 								)}
 								<div className="gamble-cards user-2">
 									<img className="card-back" src={cardBack} alt="card back" />
