@@ -200,6 +200,14 @@ function App() {
 		}
 	};
 
+	const playFaceDownCard = (index) => {
+		if (!isMyTurn) {
+			alert("It's not your turn!");
+			return;
+		}
+		socket.emit("playFaceDownCard", { index, playuerId: socket.id });
+	};
+
 	const updatePlayerCards = (cards) => {
 		socket.emit("updatePlayerCards", cards);
 	};
@@ -285,9 +293,9 @@ function App() {
 									<p>Face-up cards picked up</p>
 								)}
 								<div className="gamble-cards user-2">
-									<img className="card-back" src={cardBack} alt="card back" />
-									<img className="card-back" src={cardBack} alt="card back" />
-									<img className="card-back" src={cardBack} alt="card back" />
+									<img className="card-back inactive-card" src={cardBack} alt="card back" />
+									<img className="card-back inactive-card" src={cardBack} alt="card back" />
+									<img className="card-back inactive-card" src={cardBack} alt="card back" />
 								</div>
 							</div>
 						</div>
@@ -315,9 +323,15 @@ function App() {
 										</button>
 									))}
 								<div className="gamble-cards user-1">
-									<img className="card-back" src={cardBack} alt="card back" />
-									<img className="card-back" src={cardBack} alt="card back" />
-									<img className="card-back" src={cardBack} alt="card back" />
+									{faceDownCards.map((card, index) => (
+										<img
+											key={index}
+											src={cardBack}
+											alt="card back"
+											className={`card-back ${hand.length === 0 && faceUpCards.length === 0 ? "" : "inactive-card"}`}
+											onClick={() => (hand.length === 0 && faceUpCards.length === 0 ? playFaceDownCard(index) : null)}
+										/>
+									))}
 								</div>
 							</div>
 						</div>
