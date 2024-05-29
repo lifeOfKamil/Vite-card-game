@@ -69,6 +69,7 @@ io.on("connection", (socket) => {
 		try {
 			const { playedCard, hand } = gameSession.playCard(socket.id, cardIndex);
 			socket.emit("handUpdated", hand);
+			console.log("Played card: ", playedCard);
 
 			if (playedCard.rank === "10") {
 				//io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
@@ -103,9 +104,39 @@ io.on("connection", (socket) => {
 	});
 
 	socket.on("playFaceDownCard", ({ index, playerId }) => {
+		const gameId = findGameIdByPlayerId(socket.id);
+		const gameSession = gameSessions[gameId];
+
 		try {
-			const card = gameSession.playFaceDownCard(playerId, index);
-			socket.emit("cardPlayed", { card });
+			const playedCard = gameSession.playFaceDownCard(playerId, index);
+			socket.emit("handUpdated", playedCard.hand);
+			console.log("Played face-down card: ", playedCard);
+
+			if (playedCard.rank === "10") {
+				console.log("Received rank 10, clearing deck on server");
+				gameSession.gameDeck = [];
+				io.in(gameId).emit("gameDeckCleared");
+			} else if (playedCard.rank === "7") {
+				console.log("Received rank 7, next card must be 7 or lower");
+			} else if (playedCard.rank === "2") {
+				console.log("Received rank 2, must play another card");
+				socket.emit("playAnotherCard");
+				return;
+			}
+
+			gameSession.nextPlayer();
+
+			io.in(gameId).emit("cardPlayed", gameSession.gameDeck);
+			io.in(gameId).emit("gameState", {
+				currentPlayerId: gameSession.currentPlayerId,
+				players: gameSessions[gameId].players.map((player) => ({
+					id: player.id,
+					hand: player.hand,
+					faceUpCards: player.faceUpCards,
+					faceDownCards: player.faceDownCards,
+				})),
+				deckLength: gameSessions[gameId].deck.length,
+			});
 		} catch (error) {
 			socket.emit("error", error.message);
 		}
