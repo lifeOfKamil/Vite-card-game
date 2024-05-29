@@ -205,7 +205,10 @@ function App() {
 			alert("It's not your turn!");
 			return;
 		}
-		socket.emit("playFaceDownCard", { index, playuerId: socket.id });
+		if (mustPlayAnotherCard) {
+			setMustPlayAnotherCard(false);
+		}
+		socket.emit("playFaceDownCard", { index, playerId: socket.id });
 	};
 
 	const updatePlayerCards = (cards) => {
@@ -328,8 +331,8 @@ function App() {
 											key={index}
 											src={cardBack}
 											alt="card back"
-											className={`card-back ${hand.length === 0 && faceUpCards.length === 0 ? "" : "inactive-card"}`}
-											onClick={() => (hand.length === 0 && faceUpCards.length === 0 ? playFaceDownCard(index) : null)}
+											className={`card-back ${hand?.length === 0 && faceUpCards?.length === 0 ? "" : "inactive-card"}`}
+											onClick={() => (hand?.length === 0 && faceUpCards?.length === 0 ? playFaceDownCard(index) : null)}
 										/>
 									))}
 								</div>
@@ -353,11 +356,15 @@ function App() {
 					<div className="cardsInHand">
 						<p>Cards in hand:</p>
 						<div className="cards" id="CardsInHand">
-							{hand.map((card, index) => (
-								<button className="card" key={index} onClick={() => selectCard(index)}>
-									{card.rank} of {card.suit}
-								</button>
-							))}
+							{hand && hand.length > 0 ? (
+								hand.map((card, index) => (
+									<button className="card" key={index} onClick={() => selectCard(index)}>
+										{card.rank} of {card.suit}
+									</button>
+								))
+							) : (
+								<p>No cards in hand</p>
+							)}
 						</div>
 					</div>
 				</div>
