@@ -15,7 +15,6 @@ function App() {
 	const [users, setUsers] = useState([]);
 	const [playerCards, setPlayerCards] = useState([]); // cards in hand
 	const [opponent_faceUpCards, setOpponent_faceUpCards] = useState([]);
-	const [player2_faceUpCards, setPlayer2_faceUpCards] = useState([]);
 	const [selectedCard, setSelectedCard] = useState(null);
 	const [playerNumber, setPlayerNumber] = useState(null);
 
