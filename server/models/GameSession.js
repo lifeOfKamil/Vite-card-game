@@ -112,10 +112,12 @@ class GameSession {
 
 		const playedCard = player.faceDownCards.splice(cardIndex, 1)[0];
 		const currentTopCard = this.gameDeck[this.gameDeck.length - 1] || null;
+		const playedRank = parseInt(playedCard.rank);
+
 		if (
 			currentTopCard &&
 			parseInt(playedCard.rank) < parseInt(currentTopCard.rank) &&
-			![2, 10].includes(parseInt(playedCard.rank))
+			![2, 10].includes(playedCard.rank)
 		) {
 			player.hand.push(playedCard);
 			player.hand = player.hand.concat(this.gameDeck);
@@ -128,13 +130,18 @@ class GameSession {
 		} else {
 			this.processPlayedCard(playedCard, player, currentTopCard);
 		}
+
+		if (playedRank === 2) {
+			player.socket.emit("playAnotherCard");
+		}
+		this.updateGameState();
 		return playedCard;
 	}
 
 	processPlayedCard(playedCard, player, currentTopCard) {
 		const playedRank = parseInt(playedCard.rank);
 
-		if (this.sevenPlayed && playedRank > 7 && playedRank !== 10) {
+		if (this.sevenPlayed && playedRank > 7 && playedRank !== 10 && playedRank !== 2) {
 			player.hand.push(playedCard); // Put the card back in hand
 			const errorMessage = "You must play a 7 or lower after a 7 has been played";
 			player.socket.emit("error", errorMessage);
@@ -165,6 +172,7 @@ class GameSession {
 		} else if (playedRank === 7) {
 			this.sevenPlayed = true;
 		} else if (playedRank === 2) {
+			this.sevenPlayed = false;
 			this.twoPlayed = true;
 			if (this.deck.length === 0 && player.hand.length === 0) {
 				player.hand = player.hand.concat(player.faceUpCards);
