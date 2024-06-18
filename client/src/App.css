@@ -40,6 +40,13 @@ body,
 	flex: 1;
 }
 
+.cards {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
 .userArea {
 	position: relative;
 	display: flex;
@@ -98,6 +105,7 @@ body,
 	height: calc(20vw * 1.4);
 	font-size: 0.825rem;
 	color: #121212;
+	margin-bottom: 8px;
 
 	&.selected {
 		border: 5px solid #646cff;
@@ -203,6 +211,7 @@ body,
 	.cardsInHand {
 		height: 100%;
 		padding-top: 50vh;
+		justify-content: start;
 	}
 
 	.buttonContainer {
