@@ -36,7 +36,7 @@
 
 ## About The Project
 
-<img src="oneplus_nighttime.png" alt="sunrise_mockup" width="1000">
+<img src="haan_readme_mockup_iphone.jpg" alt="haan_readme_mockup_iphone" width="1000">
 
 Hi there! I'm Kamil Lepkowski, a passionate developer who created this real-time card game web application, inspired by a card game I often played with friends at a local cafe. 
 
@@ -116,11 +116,9 @@ Feel free to reach out if you encounter any issues or have questions.
 
 Here are some additional screenshots and mockup:
 
-<img src="iphone_x_gradient_daytime.jpg" alt="daytime_mockup" width="1000">
+<img src="haan_readme_mockup_laptop.jpg" alt="haan_readme_mockup_laptop" width="1000">
 <br></br>
-<img src="three_iphone_mockup.jpg" alt="three_iphone_mockup" width="1000">
-<br></br>
-<img src="iphone_xs_sunrise.png" alt="sunrise_mockup" width="1000">
+<img src="haan_readme_mockup_inhand.jpg" alt="haan_readme_mockup_inhand" width="1000">
 
 ## Roadmap
 
