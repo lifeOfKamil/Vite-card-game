@@ -1,7 +1,7 @@
 <br/>
 <p align="center">
   <a href="https://github.com/lifeOfKamil/Vite-card-game">
-    <img src="haan_logo.png" alt="Logo" width="100" height="100">
+    <img src="haan_logo.png" alt="Logo" width="150" height="150">
   </a>
 
   <h2 align="center">Haan Card Game</h2>
