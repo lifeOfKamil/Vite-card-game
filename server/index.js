@@ -1,7 +1,7 @@
 const express = require("express");
 const { createServer } = require("http");
 const { Server } = require("socket.io");
-const { generateDeck, shuffle } = require("./utils/deck");
+const { generateDeck, shuffle } = require("./utils/Deck");
 const Player = require("./models/Player");
 const GameSession = require("./models/GameSession");
 

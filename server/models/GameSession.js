@@ -1,5 +1,5 @@
 const Player = require("./Player");
-const { generateDeck, shuffle } = require("../utils/deck");
+const { generateDeck, shuffle } = require("../utils/Deck");
 
 class GameSession {
   constructor() {
