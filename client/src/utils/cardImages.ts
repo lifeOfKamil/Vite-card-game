@@ -1,4 +1,4 @@
-import type { PlayingCard } from "@/types/game";
+import type { PlayingCard } from "../types/game";
 
 const BASE = import.meta.env.BASE_URL || "/";
 

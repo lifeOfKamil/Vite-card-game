@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import type { ReactElement } from "react";
 
 type PopupVariant = "info" | "success" | "warning" | "error";
 type PopupProps = {
@@ -9,7 +10,7 @@ type PopupProps = {
 	autoCloseMs?: number; // e.g. 2500
 };
 
-const variantStyles: Record<PopupVariant, { ring: string; text: string; icon: JSX.Element }> = {
+const variantStyles: Record<PopupVariant, { ring: string; text: string; icon: ReactElement }> = {
 	info: {
 		ring: "ring-sky-400/50",
 		text: "text-sky-200",
@@ -56,7 +57,7 @@ export default function Popup({ message, onClose, variant = "info", autoCloseMs 
 
 	// Portal so it floats above everything without affecting layout
 	return createPortal(
-		<div className="pointer-events-none fixed inset-x-0 top-6 z-[1000] flex justify-center px-4 sm:px-0">
+		<div className="pointer-events-none fixed inset-x-0 top-6 z-1000 flex justify-center px-4 sm:px-0">
 			<div
 				role="dialog"
 				aria-live="polite"
@@ -72,7 +73,7 @@ export default function Popup({ message, onClose, variant = "info", autoCloseMs 
 				].join(" ")}
 			>
 				{/* Glow accent */}
-				<div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-white/10 via-white/0 to-white/0" />
+				<div className="absolute -inset-px rounded-2xl bg-linear-to-br from-white/10 via-white/0 to-white/0" />
 
 				{/* Content */}
 				<div className="relative flex items-center gap-3">

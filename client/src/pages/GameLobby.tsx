@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../lib/socket";
 
@@ -143,11 +143,11 @@ export function GameLobby() {
 	// Waiting in lobby view
 	if (lobbyInfo) {
 		return (
-			<div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center p-4">
+			<div className="min-h-screen bg-linear-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center p-4">
 				<div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
 					<h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Game Lobby</h1>
 
-					<div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 mb-6">
+					<div className="bg-linear-to-r from-indigo-50 to-purple-50 rounded-xl p-6 mb-6">
 						<h2 className="text-lg font-semibold text-gray-700 mb-3 text-center">Game ID</h2>
 						<div className="flex items-center gap-3 justify-center">
 							<code className="text-3xl font-bold tracking-wider text-indigo-600 bg-white px-6 py-3 rounded-lg shadow-sm">
@@ -198,7 +198,7 @@ export function GameLobby() {
 	return (
 		<div className="min-h-screen bg-linear-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center p-4">
 			<div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
-				<h1 className="text-4xl font-bold text-center text-gray-800 mb-8">🃏 Shithead Card Game</h1>
+				<h1 className="text-4xl font-bold text-center text-gray-800 mb-8">🃏 Haan Card Game</h1>
 
 				<div className="space-y-6">
 					{/* Create Game Section */}

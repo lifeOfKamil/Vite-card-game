@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { socket } from "../lib/socket";
 import type { PlayingCard } from "../types/game";
@@ -22,6 +22,21 @@ interface GameStateData {
 	currentPlayerId: string;
 	pileTop?: Card | null;
 	pileLength?: number;
+}
+type BareCard = { rank: string; suit: string; id?: string };
+
+function toPlayingCards(
+	cards: BareCard[] | undefined,
+	faceUp: boolean,
+	owner: "me" | "opp",
+	group: "down" | "up"
+): PlayingCard[] {
+	return (cards ?? []).map((c, i) => ({
+		id: c.id ?? `${owner}-${group}-${c.rank}-${c.suit}-${i}`,
+		rank: c.rank,
+		suit: c.suit,
+		faceUp,
+	}));
 }
 
 function CardFaceUp({ card }: { card: Card }) {
@@ -59,7 +74,6 @@ function FaceStacks({
 	canFlipIndex,
 	onFlip,
 	owner = "me",
-	compact = false,
 }: {
 	down: PlayingCard[];
 	up: PlayingCard[];
@@ -72,14 +86,14 @@ function FaceStacks({
 		<div className="relative flex flex-col mt-14 items-center">
 			{/* face-down row */}
 			<div className="flex justify-center gap-2">
-				{down.map((c, i) => {
+				{down.map((_c, i) => {
 					const clickable = owner === "me" && !!canFlipIndex?.(i);
 					return (
 						<CardFaceDown
 							key={`down-${i}`}
 							clickable={clickable}
 							onClick={clickable ? () => onFlip?.(i) : undefined}
-							className={compact ? "w-14 h-20" : "w-24 h-32"}
+							className="w-24 h-32"
 						/>
 					);
 				})}
@@ -89,7 +103,7 @@ function FaceStacks({
 			{up.length > 0 && (
 				<div className="absolute -top-7 left-1/2 -translate-x-1/2 flex justify-center gap-2" style={{ zIndex: 10 }}>
 					{up.map((c, i) => (
-						<CardFaceUp key={`up-${i}`} card={c} compact={compact} className={compact ? "w-14 h-20" : "w-24 h-32"} />
+						<CardFaceUp key={`up-${i}`} card={c} />
 					))}
 				</div>
 			)}
@@ -132,8 +146,8 @@ export default function GameBoard() {
 			setPlayers(data.players);
 			setDeckLength(data.deckLength);
 			setIsMyTurn(data.currentPlayerId === socket.id);
-			setPileTop(data.pileTop);
-			setPileLength(data.pileLength);
+			setPileTop(data.pileTop ?? null);
+			setPileLength(data.pileLength ?? 0);
 			console.log("Game state received:", data);
 		};
 
@@ -153,7 +167,7 @@ export default function GameBoard() {
 
 		socket.on("gameDeckCleared", ({ reason }) => {
 			setGameDeck([]);
-			console.log("Game deck has been cleared");
+			console.log("Game deck has been cleared", gameDeck);
 
 			const msg = reason === "fourOfAKind" ? "Game deck cleared by 4 of a kind!" : "Game deck cleared by a 10!";
 
@@ -181,8 +195,10 @@ export default function GameBoard() {
 		});
 
 		socket.on("playerDisconnected", ({ message }: { message: string }) => {
-			setPopupMessage(message);
-			setTimeout(() => navigate("/"), 2000);
+			setPopupMessage({
+				text: "Opponent disconnected: " + message,
+				variant: "warning",
+			});
 		});
 
 		const onGameWon = ({ winnerId }: { winnerId: string }) => {
@@ -208,19 +224,10 @@ export default function GameBoard() {
 		};
 	}, [gameId, navigate]);
 
-	// actions
-	const drawCard = () => socket.emit("addCardToHand");
-
-	const playCard = (cardIndex: number) => {
-		if (!isMyTurn) return;
-		socket.emit("playCard", cardIndex);
-		if (mustPlayAnotherCard) setMustPlayAnotherCard(false);
-	};
-
 	const submitSelected = () => {
 		if (!isMyTurn) return;
 		if (selectedIdx.length === 0) {
-			setPopupMessage("Select at least one card");
+			setPopupMessage({ text: "Select at least one card", variant: "warning" });
 			return;
 		}
 		socket.emit("playCards", { indices: selectedIdx }); // server is source of truth
@@ -296,7 +303,12 @@ export default function GameBoard() {
 							<div className="font-semibold">Opponent</div>
 							<div className="text-xs text-slate-400">{opp ? `ID: ${opp.id.slice(0, 6)}` : "Waiting…"}</div>
 						</div>
-						<FaceStacks down={opp?.faceDownCards ?? []} up={opp?.faceUpCards ?? []} compact owner="opponent" />
+						<FaceStacks
+							down={toPlayingCards(opp?.faceDownCards, false, "opp", "down")}
+							up={toPlayingCards(opp?.faceUpCards, true, "opp", "up")}
+							compact
+							owner="opponent"
+						/>
 					</section>
 
 					{/* CENTER: deck + pile */}
@@ -348,14 +360,14 @@ export default function GameBoard() {
 					<section className="rounded-xl bg-neutral-800/60 border border-neutral-700 p-4">
 						<div className="text-sm mb-3">
 							<div className="font-semibold">You</div>
-							<div className="text-xs text-slate-400">{socket.id.slice(0, 6)}</div>
+							<div className="text-xs text-slate-400">{socket?.id?.slice(0, 6)}</div>
 						</div>
 						<FaceStacks
-							down={me?.faceDownCards ?? []}
-							up={me?.faceUpCards ?? []}
+							down={toPlayingCards(me?.faceDownCards, false, "me", "down")}
+							up={toPlayingCards(me?.faceUpCards, true, "me", "up")}
 							compact
 							owner="me"
-							canFlipIndex={(i) => {
+							canFlipIndex={(_i) => {
 								const handCount = me?.hand?.length ?? 0;
 								const upCount = me?.faceUpCards?.length ?? 0;
 								return isMyTurn && (mustPlayAnotherCard || (handCount === 0 && upCount === 0));
