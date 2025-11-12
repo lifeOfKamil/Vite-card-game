@@ -34,4 +34,15 @@
     },
     "typescript.autoClosingTags": true,
     "typescript.suggest.autoImports": true,
+    "editor.formatOnSave": true,
+	"editor.codeActionsOnSave": {
+    "source.fixAll": "always",
+    "source.fixAll.eslint": "always",
+		"source.fixAll.headwind": "always"
+	},
+    "headwind.runOnSave": true,
+    "headwind.classRegex": "(?:class(?:Name)?=\\s*[\"'`]([^\"'`]*)[\"'`])",
+    "headwind.removeDuplicates": true,
+    "headwind.sortOnSave": true,
+        "terminal.integrated.fontFamily": "JetBrainsMono NF"
 }
