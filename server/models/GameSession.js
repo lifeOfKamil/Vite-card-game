@@ -2,283 +2,454 @@ const Player = require("./Player");
 const { generateDeck, shuffle } = require("../utils/deck");
 
 class GameSession {
-	constructor() {
-		this.deck = shuffle(generateDeck());
-		this.gameDeck = [];
-		this.players = [];
-		this.currentTurnIndex = 0;
-		this.currentPlayerId = null;
-		this.sevenPlayed = false;
-		this.twoPlayed = false;
-	}
+  constructor() {
+    this.deck = shuffle(generateDeck());
+		console.log("[INIT] deck size = ", this.deck.length);
+    this.gameDeck = [];
+    this.players = [];
+    this.currentTurnIndex = 0;
+    this.currentPlayerId = null;
+    this.sevenPlayed = false;
+    this.twoPlayed = false;
+    this.hasDealt = false; // <--- NEW
+  }
 
-	setInitialPlayer() {
-		if (this.players.length > 0) {
-			this.currentPlayerId = this.players[0].id;
-		}
-	}
+  setInitialPlayer() {
+    if (this.players.length > 0) {
+      // choose first player for now (you can randomize if you want)
+      this.currentTurnIndex = 0;
+      this.currentPlayerId = this.players[0].id;
+    }
+  }
 
-	nextPlayer() {
-		if (this.players.length > 0) {
-			this.currentTurnIndex = (this.currentTurnIndex + 1) % this.players.length;
-			this.currentPlayerId = this.players[this.currentTurnIndex].id;
-			this.updateGameState();
-		}
-	}
+  nextPlayer() {
+    if (this.players.length > 0) {
+      this.currentTurnIndex = (this.currentTurnIndex + 1) % this.players.length;
+      this.currentPlayerId = this.players[this.currentTurnIndex].id;
+      this.updateGameState();
+    }
+  }
 
-	addPlayer(player) {
+  addPlayer(player) {
 		this.players.push(player);
-		this.dealInitialCards(player);
-		if (this.players.length === 2) {
-			this.emitInitialGamesState();
-		}
+		console.log("[ADD] players now =", this.players.length, "deck =", this.deck.length);
+
+		// Only deal after both players are present
+		if (this.players.length === 2 && !this.hasDealt) {
+    console.log("[DEAL] before dealForAll deck =", this.deck.length);
+    this.dealInitialCardsForAll();
+    console.log("[DEAL] after  dealForAll deck =", this.deck.length);
+    this.hasDealt = true;
+    this.setInitialPlayer();
+    this.updateGameState();
+  } else if (this.players.length >= 2 && this.hasDealt) {
+    console.warn("[SKIP] deal already done");
+    this.updateGameState();
+  }
 	}
 
-	emitInitialGamesState() {
-		if (this.players.length > 0) {
-			this.currentTurnIndex = 0; // Ensure the first player starts
-			this.currentPlayerId = this.players[this.currentTurnIndex].id;
-			this.updateGameState();
-		}
-	}
+  updateGameState() {
+    if (this.players.length > 0 && this.currentTurnIndex < this.players.length) {
+      const gameState = {
+        currentPlayerId: this.players[this.currentTurnIndex].id,
+        players: this.players.map((player) => ({
+          id: player.id,
+          hand: player.hand,
+          faceUpCards: player.faceUpCards,
+          faceDownCards: player.faceDownCards,
+          isTurn: player.id === this.players[this.currentTurnIndex].id,
+        })),
+        deckLength: this.deck.length,
+        pileTop: this.gameDeck[this.gameDeck.length - 1],
+        pileLength: this.gameDeck.length,
+      };
+      console.log("Current player's turn: ", this.players[this.currentTurnIndex].id);
+      this.players.forEach((player) => {
+        player.socket.emit("gameState", gameState);
+      });
+    } else {
+      console.error("Cannot update game state: No players or invalid currentTurnIndex");
+    }
+  }
 
-	updateGameState() {
-		if (this.players.length > 0 && this.currentTurnIndex < this.players.length) {
-			const gameState = {
-				currentPlayerId: this.players[this.currentTurnIndex].id,
-				players: this.players.map((player) => ({
-					id: player.id,
-					hand: player.hand,
-					faceUpCards: player.faceUpCards,
-					faceDownCards: player.faceDownCards,
-					isTurn: player.id === this.players[this.currentTurnIndex].id,
-				})),
-			};
-			console.log("Current player's turn: ", this.players[this.currentTurnIndex].id);
-			this.players.forEach((player) => {
-				player.socket.emit("gameState", gameState);
-			});
-		} else {
-			console.error("Cannot update game state: No players or invalid currentTurnIndex");
-		}
-	}
+  removePlayer(playerId) {
+    const index = this.players.findIndex((player) => player.id === playerId);
+    if (index !== -1) {
+      const [removedPlayer] = this.players.splice(index, 1);
+      if (this.players.length === 0) {
+        this.resetGame();
+      } else {
+        // keep turn index sane
+        if (this.currentTurnIndex >= this.players.length) {
+          this.currentTurnIndex = 0;
+          this.currentPlayerId = this.players[0].id;
+        }
+        this.updateGameState();
+      }
+      return removedPlayer;
+    } else {
+      throw new Error("Player not found");
+    }
+  }
 
-	removePlayer(playerId) {
-		// Find the player index using their ID
-		const index = this.players.findIndex((player) => player.id === playerId);
+  resetGame() {
+    this.deck = shuffle(generateDeck());
+    this.gameDeck = [];
+    this.currentTurnIndex = 0;
+    this.currentPlayerId = null;
+    this.sevenPlayed = false;
+    this.twoPlayed = false;
+    this.hasDealt = false;       // <--- reset
+    console.log("Game has been reset");
+  }
 
-		if (index !== -1) {
-			const [removedPlayer] = this.players.splice(index, 1);
-			if (this.players.length === 0) {
-				this.resetGame();
-			} else {
-				this.updateGameState();
-			}
-			return removedPlayer;
-		} else {
-			throw new Error("Player not found");
-		}
-	}
+  dealInitialCards(player) {
+    // 3 face-down, 3 face-up, 3 hand (draw from end/pile top)
+    // Using pop() improves clarity
+    const draw = () => this.deck.pop();
 
-	resetGame() {
-		this.deck = shuffle(generateDeck());
-		this.gameDeck = [];
-		this.currentTurnIndex = 0;
-		this.currentPlayerId = null;
-		this.sevenPlayed = false;
-		this.twoPlayed = false;
-		console.log("Game has been reset");
-	}
+    player.faceDownCards = [draw(), draw(), draw()];
+    player.faceUpCards   = [draw(), draw(), draw()];
+    player.hand          = [draw(), draw(), draw()];
 
-	dealInitialCards(player) {
-		// Give each player 3 cards for each type
-		player.hand = this.deck.splice(-3);
-		player.faceUpCards = this.deck.splice(-3);
-		player.faceDownCards = this.deck.splice(-3);
-		console.log("Player face up cards: ", player.faceUpCards);
-	}
+    console.log("Dealt to player", player.id, {
+      faceUp: player.faceUpCards,
+      faceDown: player.faceDownCards.length,
+      hand: player.hand.length,
+    });
 
-	drawCard(player) {
-		if (this.deck.length > 0) {
-			const card = this.deck.pop();
-			player.hand.push(card);
-			return card;
-		} else {
-			throw new Error("No more cards in the deck");
-		}
-	}
+		console.log("Remaining cards: ", this.deck);
+  }
 
-	playCard(playerId, cardIndex) {
-		const player = this.players.find((p) => p.id === playerId);
-		const currentTopCard = this.gameDeck[this.gameDeck.length - 1] || null;
-
-		if (player && cardIndex >= 0 && cardIndex < player.hand.length) {
-			const playedCard = player.hand.splice(cardIndex, 1)[0];
-			this.processPlayedCard(playedCard, player, currentTopCard);
-			return { playedCard, hand: player.hand };
-		} else {
-			throw new Error("Player or card not found");
-		}
-	}
-
-	playFaceDownCard(playerId, cardIndex) {
-		const player = this.players.find((p) => p.id === playerId);
-		if (!player) throw new Error("Player not found");
-
-		if (cardIndex < 0 || cardIndex >= player.faceDownCards.length) {
-			throw new Error("Invalid card index");
-		}
-
-		const playedCard = player.faceDownCards.splice(cardIndex, 1)[0];
-		const currentTopCard = this.gameDeck[this.gameDeck.length - 1] || null;
-		const playedRank = parseInt(playedCard.rank);
-
-		if (
-			currentTopCard &&
-			parseInt(playedCard.rank) < parseInt(currentTopCard.rank) &&
-			![2, 10].includes(playedCard.rank)
-		) {
-			player.hand.push(playedCard);
-			player.hand = player.hand.concat(this.gameDeck);
-			this.gameDeck = [];
-			player.socket.emit(
-				"error",
-				`Card ${playedCard.rank} of ${playedCard.suit} added back to hand. You must play a card of equal or higher rank than ${currentTopCard.rank}. You picked up the game deck.`
-			);
-			this.updateGameState();
-		} else {
-			this.processPlayedCard(playedCard, player, currentTopCard);
-		}
-
-		if (playedRank === 2) {
-			player.socket.emit("playAnotherCard");
-		}
-		this.updateGameState();
-		return playedCard;
-	}
-
-	processPlayedCard(playedCard, player, currentTopCard) {
-		const playedRank = parseInt(playedCard.rank);
-
-		if (this.sevenPlayed && playedRank > 7 && playedRank !== 10 && playedRank !== 2) {
-			player.hand.push(playedCard);
-			const errorMessage = "You must play a 7 or lower after a 7 has been played";
-			player.socket.emit("error", errorMessage);
-			throw new Error(errorMessage);
-		}
-
-		// 10 can be played at any time and clears the deck
-		if (playedRank === 10) {
-			this.gameDeck = [];
-			this.sevenPlayed = false;
-			this.twoPlayed = false;
-			this.updateGameState();
+	dealInitialCardsForAll() {
+		if (this.hasDealt) {
+			console.warn("[GUARD] dealInitialCardsForAll called again — skipped");
 			return;
 		}
-
-		if (
-			!this.sevenPlayed &&
-			currentTopCard &&
-			playedRank < parseInt(currentTopCard.rank) &&
-			![2, 10].includes(playedRank)
-		) {
-			player.hand.push(playedCard);
-			player.hand = player.hand.concat(this.gameDeck);
-			this.gameDeck = [];
-			const errorMessage = `You must play a card of equal or higher rank than the current top card (${currentTopCard.rank}). You picked up the game deck.`;
-			player.socket.emit("error", errorMessage);
-			this.updateGameState();
-			return;
+		const draw = () => this.deck.pop();
+		for (const p of this.players) {
+			p.faceDownCards = [draw(), draw(), draw()];
+			p.faceUpCards   = [draw(), draw(), draw()];
+			p.hand          = [draw(), draw(), draw()];
 		}
-
-		this.gameDeck.push(playedCard);
-
-		if (playedRank === 7) {
-			this.sevenPlayed = true;
-		} else if (playedRank === 2) {
-			this.sevenPlayed = false;
-			this.twoPlayed = true;
-			// Check if this was the last card in the player's hand
-			if (player.hand.length === 0) {
-				if (player.faceUpCards.length > 0) {
-					player.hand = player.hand.concat(player.faceUpCards);
-					player.faceUpCards = [];
-				} else if (player.faceDownCards.length > 0) {
-					player.socket.emit("playFaceDownCard"); // Prompt player to play a face-down card
-					return;
-				}
-			} else {
-				player.socket.emit("playAnotherCard");
-			}
-		} else {
-			this.sevenPlayed = playedCard.rank === "7";
-		}
-
-		if (!this.twoPlayed) {
-			this.updateGameState();
-		}
-
-		if (this.deck.length > 0 && player.hand.length < 3 && playedRank !== 2) {
-			this.drawCard(player);
-		} else if (this.deck.length === 0 && player.hand.length === 0) {
-			player.hand = player.hand.concat(player.faceUpCards);
-			player.faceUpCards = [];
-		}
+		console.log("[DEAL] 9 per player; deck left =", this.deck.length);
 	}
 
-	pickUpCards(playerId) {
-		const player = this.players.find((p) => p.id === playerId);
-		this.sevenPlayed = false; // Reset sevenPlayed state
-		this.twoPlayed = false; // Reset twoPlayed state
+  drawCard(player) {
+    if (this.gameOver) return;
+    if (this.deck.length > 0) {
+      const card = this.deck.pop();
+      player.hand.push(card);
+      return card;
+    } else {
+      throw new Error("No more cards in the deck");
+    }
+  }
 
-		this.nextPlayer();
+  playCard(playerId, cardIndex) {
+    if (this.gameOver) return;
+    const player = this.players.find((p) => p.id === playerId);
+    const currentTopCard = this.gameDeck[this.gameDeck.length - 1] || null;
 
-		if (player) {
-			player.hand = player.hand.concat(this.gameDeck);
-			this.gameDeck = [];
-			return player.hand;
-		} else {
-			throw new Error("Player not found");
-		}
-	}
+    if (player && cardIndex >= 0 && cardIndex < player.hand.length) {
+      const playedCard = player.hand.splice(cardIndex, 1)[0];
+      this.processPlayedCard(playedCard, player, currentTopCard);
+      return { playedCard, hand: player.hand };
+    } else {
+      throw new Error("Player or card not found");
+    }
+  }
 
-	// handleSpecialCards(card, playerId) {
-	// 	const playedRank = parseInt(card.rank);
+  playCards(playerId, indices) {
+    if (this.gameOver) return;
 
-	// 	if (playedRank === "10") {
-	// 		// Discard the deck if a 10 is played
-	// 		this.gameDeck = [];
-	// 		this.sevenPlayed = false;
-	// 		this.twoPlayed = false;
-	// 	} else if (playedRank === "7") {
-	// 		this.sevenPlayed = true;
-	// 	} else if (playedRank === "2") {
-	// 		this.twoPlayed = true;
-	// 		const player = this.players.find((p) => p.id === playerId);
-	// 		player.socket.emit("playAnotherCard");
-	// 	} else {
-	// 		this.sevenPlayed = false;
-	// 		this.twoPlayed = false;
-	// 	}
+    const player = this.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    if (!Array.isArray(indices) || indices.length === 0) throw new Error("No cards selected");
 
-	// 	console.log("Adding card to deck: ", card);
-	// 	this.gameDeck.push(card);
-	// 	console.log("Game deck: ", this.gameDeck);
+    // Work from highest → lowest to splice safely
+    const sorted = [...indices].sort((a, b) => b - a);
 
-	// 	if (!this.twoPlayed) {
-	// 		this.nextPlayer();
-	// 	}
-	// }
+    // Peek cards and validate
+    const selected = sorted.map(i => {
+      if (i < 0 || i >= player.hand.length) throw new Error("Invalid card index");
+      return player.hand[i];
+    });
 
-	placeCard(player, cardIndex) {
-		if (player.hand.length > 0) {
-			const playedCard = player.hand.splice(cardIndex, 1)[0];
-			this.drawCard(player); // Draw a new card after playing
-			return playedCard;
-		} else {
-			throw new Error("No cards in hand to play");
-		}
-	}
+    const rank0 = selected[0].rank;
+    if (!selected.every(c => c.rank === rank0)) {
+      throw new Error("Selected cards must be the same rank");
+    }
+
+    const playedRank = parseInt(rank0, 10);
+    const top = this.gameDeck[this.gameDeck.length - 1] || null;
+
+    // 7 rule
+    if (this.sevenPlayed && playedRank > 7 && playedRank !== 10 && playedRank !== 2) {
+      player.hand.push(...selected);
+      player.hand = player.hand.concat(this.gameDeck);
+      this.gameDeck = [];
+      player.socket.emit("error", "After a 7, you must play 7 or lower (except 2 or 10). You picked up the pile.");
+      this.updateGameState();
+      return;
+    }
+
+    // Normal ≥ top unless special
+    if (!this.sevenPlayed && top && playedRank < parseInt(top.rank, 10) && ![2, 10].includes(playedRank)) {
+      player.hand.push(...selected);
+      player.hand = player.hand.concat(this.gameDeck);
+      this.gameDeck = [];
+      player.socket.emit("error", `Must play ≥ ${top.rank} (unless 2 or 10). You picked up the pile.`);
+      this.updateGameState();
+      return;
+    }
+
+    // Remove from hand
+    for (const i of sorted) player.hand.splice(i, 1);
+
+    // Place on pile
+    this.gameDeck.push(...selected);
+
+    if (this.checkFourOfAKind()) {
+      this.updateGameState();
+      this.maybeEndGame?.(player);
+      return;
+    } 
+
+    // Specials
+    if (playedRank === 10) {
+      this.gameDeck = [];
+      this.sevenPlayed = false;
+      this.twoPlayed = false;
+      this.players.forEach(p => p.socket.emit("gameDeckCleared", { reason: "ten" }));
+    } else if (playedRank === 7) {
+      this.sevenPlayed = true;
+      this.twoPlayed = false;
+    } else if (playedRank === 2) {
+      this.sevenPlayed = false;
+      this.twoPlayed = true;
+
+      // Promote if emptied hand
+      if (player.hand.length === 0) {
+        if (player.faceUpCards.length > 0) {
+          player.hand.push(...player.faceUpCards);
+          player.faceUpCards = [];
+        } else if (player.faceDownCards.length > 0) {
+          player.socket.emit("playFaceDownCard");
+        }
+      }
+
+      this.updateGameState();
+      this.maybeEndGame?.(player);
+      return; // same player keeps turn after 2
+    } else {
+      this.sevenPlayed = (playedRank === 7);
+    }
+
+    // Refill to 3 or promote if needed
+    if (this.deck.length > 0 && player.hand.length < 3) {
+      while (player.hand.length < 3 && this.deck.length > 0) this.drawCard(player);
+    } else if (this.deck.length === 0 && player.hand.length === 0) {
+      if (player.faceUpCards.length > 0) {
+        player.hand.push(...player.faceUpCards);
+        player.faceUpCards = [];
+      }
+    }
+
+    this.updateGameState();
+    this.maybeEndGame?.(player);
+    this.nextPlayer();
+  }
+
+  playFaceDownCard(playerId, cardIndex) {
+    if (this.gameOver) return;
+    const player = this.players.find((p) => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    if (cardIndex < 0 || cardIndex >= player.faceDownCards.length) {
+      throw new Error("Invalid card index");
+    }
+
+    const playedCard = player.faceDownCards.splice(cardIndex, 1)[0];
+    const currentTopCard = this.gameDeck[this.gameDeck.length - 1] || null;
+
+    const res = this.processPlayedCard(playedCard, player, currentTopCard);
+    
+    if (res?.mustPlayAnother) {
+      return res;
+    }
+
+    if (res) this.nextPlayer();
+    
+    console.log(`Face-down card index: ${cardIndex}`);
+    
+    if (!this.gameOver && this.hasNoCards(player)) {
+      this.endGame(player);
+      return { playedCard, hand: player.hand };
+    }
+
+  }
+
+  processPlayedCard(playedCard, player, currentTopCard) {
+    const playedRank = parseInt(playedCard.rank, 10);
+
+    // 7-restriction violation → pickup
+    if (this.sevenPlayed && playedRank > 7 && playedRank !== 10 && playedRank !== 2) {
+      player.hand.push(playedCard);
+      player.hand = player.hand.concat(this.gameDeck);
+      this.gameDeck = [];
+      player.socket.emit("error", "You must play a 7 or lower after a 7 has been played");
+      this.updateGameState();
+      return { action: "pickup", mustPlayAnother: false };
+    }
+
+    // Normal rule violation → pickup
+    if (!this.sevenPlayed && currentTopCard &&
+        playedRank < parseInt(currentTopCard.rank, 10) &&
+        ![2, 10].includes(playedRank)) {
+      player.hand.push(playedCard);
+      player.hand = player.hand.concat(this.gameDeck);
+      this.gameDeck = [];
+      player.socket.emit("error", `Must play ≥ ${currentTopCard.rank} (unless 2 or 10). You picked up the pile.`);
+      this.updateGameState();
+      return { action: "pickup", mustPlayAnother: false };
+    }
+
+    // Place on pile
+    this.gameDeck.push(playedCard);
+
+    if (this.checkFourOfAKind()) {
+      this.updateGameState();
+      this.maybeEndGame?.(player);
+      this.nextPlayer();
+      return { action: "cleared", mustPlayAnother: false };
+    }
+
+    if (playedRank === 10) {
+      this.gameDeck = [];
+      this.sevenPlayed = false;
+      this.twoPlayed = false;
+      this.players.forEach(p => p.socket.emit("gameDeckCleared", { reason: "ten" }));
+      this.updateGameState();
+      return { action: "cleared", mustPlayAnother: false };
+    }
+
+    if (playedRank === 7) {
+      this.sevenPlayed = true;
+      this.twoPlayed = false;
+    } else if (playedRank === 2) {
+      this.sevenPlayed = false;
+      this.twoPlayed = true;
+
+      if (player.hand.length === 0) {
+        if (player.faceUpCards.length > 0) {
+          player.hand = player.hand.concat(player.faceUpCards);
+          player.faceUpCards = [];
+        } else if (player.faceDownCards.length > 0) {
+          player.socket.emit("playFaceDownCard"); // prompt flip
+          this.updateGameState();
+          // Still same player's turn; they must play again due to '2'
+          return { action: "played", mustPlayAnother: true };
+        }
+      } else {
+        player.socket.emit("playAnotherCard");
+      }
+      this.updateGameState();
+
+      // refill-from-deck / promotions after updateGameState
+      if (this.deck.length > 0 && player.hand.length < 3) {
+        while (player.hand.length < 3 && this.deck.length > 0) this.drawCard(player);
+        this.updateGameState();
+      } else if (this.deck.length === 0 && player.hand.length === 0 && player.faceUpCards.length > 0) {
+        player.hand = player.hand.concat(player.faceUpCards);
+        player.faceUpCards = [];
+        this.updateGameState();
+      }
+
+      this.maybeEndGame(player);
+      return { action: "played", mustPlayAnother: true };
+    } else {
+      this.sevenPlayed = (playedRank === 7);
+    }
+
+    // Refill/promote if needed (non-2 path)
+    if (this.deck.length > 0 && player.hand.length < 3) {
+      while (player.hand.length < 3 && this.deck.length > 0) this.drawCard(player);
+    } else if (this.deck.length === 0 && player.hand.length === 0 && player.faceUpCards.length > 0) {
+      player.hand = player.hand.concat(player.faceUpCards);
+      player.faceUpCards = [];
+    }
+
+    this.updateGameState();
+    this.maybeEndGame(player);
+
+    return { action: "played", mustPlayAnother: false };
+  }
+
+  pickUpCards(playerId) {
+    if (this.gameOver) return;
+    const player = this.players.find((p) => p.id === playerId);
+    this.sevenPlayed = false;
+    this.twoPlayed = false;
+
+    if (player) {
+      player.hand = player.hand.concat(this.gameDeck);
+      this.gameDeck = [];
+      this.nextPlayer();         // advances turn + emits state
+      return player.hand;
+    } else {
+      throw new Error("Player not found");
+    }
+  }
+
+  placeCard(player, cardIndex) {
+    if (player.hand.length > 0) {
+      const playedCard = player.hand.splice(cardIndex, 1)[0];
+      this.drawCard(player);
+      return playedCard;
+    } else {
+      throw new Error("No cards in hand to play");
+    }
+  }
+
+  hasNoCards(p) {
+    return (p.hand.length === 0 && p.faceUpCards.length === 0 && p.faceDownCards.length === 0);
+  }
+
+  checkFourOfAKind() {
+    const n = this.gameDeck.length;
+    if (n === 0) return false;
+
+    const top = this.gameDeck[n - 1];
+    const rank = top.rank;
+
+    let count = 0;
+    for (let i = n - 1; i >= 0; i--) {
+      if (this.gameDeck[i].rank === rank) count++;
+      else break;
+    }
+
+    if (count === 4) {
+      this.gameDeck = [];
+      this.sevenPlayed = false;
+      this.twoPlayed = false;
+      this.players.forEach(p => p.socket.emit("gameDeckCleared", { reason: "fourOfAKind"}));
+      return true;
+    }
+    return false;
+  }
+
+  endGame(winner) {
+    this.gameOver = true;
+    this.winnerId = winner.id;
+    // final snapshot (optional)
+    this.updateGameState();
+    // tell both clients
+    this.players.forEach(pl => pl.socket.emit("gameWon", { winnerId: winner.id }));
+  }
+
+  maybeEndGame(player) {
+    if (!this.gameOver && this.hasNoCards(player)) this.endGame(player);
+  }
 }
 
 module.exports = GameSession;

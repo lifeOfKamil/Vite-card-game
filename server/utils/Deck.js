@@ -10,14 +10,11 @@ const rankMap = {
 let deck = [];
 
 function generateDeck() {
-	deck = [];
-	for (const suit of suits) {
-		for (const rank of ranks) {
-			const rankId = rankMap[rank] || rank;
-			deck.push({ suit, rank, id: `${rankId}${suit}` });
-		}
-	}
-	return deck;
+  const suits = ["❤","♦","♣","♠"];
+  const ranks = Array.from({length:13}, (_,i)=> String(i+2));
+  const deck = [];
+  for (const s of suits) for (const r of ranks) deck.push({ suit: s, rank: r, id: `${r}${s}` });
+  return deck; // length 52
 }
 
 function shuffle(deck) {
