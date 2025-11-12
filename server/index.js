@@ -7,9 +7,10 @@ const GameSession = require("./models/GameSession");
 
 const app = express();
 const httpServer = createServer(app);
+const FRONTEND_URL = process.env.FRONTEND_URL
 const io = new Server(httpServer, {
 	cors: {
-		origin: "http://localhost:5173",
+		origin: frontend_url,
 		methods: ["GET", "POST"],
 		credentials: false,
 	},
@@ -323,6 +324,7 @@ io.on("connection", (socket) => {
 	});
 });
 
-httpServer.listen(3000, () => {
-	console.log("🚀: Server listening on port 3000");
+const PORT = process.env.PORT || 3000;
+httpServer.listen(PORT, '0.0.0.0' () => {
+	console.log("🚀: Server listening on port {PORT}");
 });
