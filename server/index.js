@@ -10,7 +10,7 @@ const httpServer = createServer(app);
 const FRONTEND_URL = process.env.FRONTEND_URL
 const io = new Server(httpServer, {
 	cors: {
-		origin: frontend_url,
+		origin: FRONTEND_URL,
 		methods: ["GET", "POST"],
 		credentials: false,
 	},
