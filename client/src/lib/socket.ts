@@ -1,10 +1,13 @@
 import { io } from "socket.io-client";
 
+const URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 // Create and export socket instance
-export const socket = io({
+export const socket = io(URL, {
   autoConnect: true,
-  transports: ["websocket"],
+  transports: ["websocket", "polling"],
   withCredentials: false,
+  path: "/socket.io",
 });
 
 // Optional: Add connection logging for debugging
