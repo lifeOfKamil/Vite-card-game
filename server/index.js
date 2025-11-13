@@ -10,7 +10,7 @@ const httpServer = createServer(app);
 const FRONTEND_URL = process.env.FRONTEND_URL
 const io = new Server(httpServer, {
 	cors: {
-		origin: FRONTEND_URL,
+		origin: ["http://localhost:5173", FRONTEND_URL],
 		methods: ["GET", "POST"],
 		credentials: false,
 	},
@@ -326,5 +326,5 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, '0.0.0.0', () => {
-	console.log("🚀: Server listening on port {PORT}");
+	console.log("🚀: Server listening on port:", PORT);
 });
