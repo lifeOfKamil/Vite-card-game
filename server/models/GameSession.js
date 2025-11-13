@@ -153,7 +153,14 @@ class GameSession {
 
     if (player && cardIndex >= 0 && cardIndex < player.hand.length) {
       const playedCard = player.hand.splice(cardIndex, 1)[0];
-      this.processPlayedCard(playedCard, player, currentTopCard);
+      const result = this.processPlayedCard(playedCard, player, currentTopCard);
+
+      // If invalid, we already put the card back and emitted state; do nothing else
+      if (result?.action === "invalid") {
+        return { playedCard: null, hand: player.hand };
+      }
+
+      // For valid plays, you can still return playedCard/hand if your UI uses it
       return { playedCard, hand: player.hand };
     } else {
       throw new Error("Player or card not found");
@@ -184,25 +191,37 @@ class GameSession {
     const playedRank = parseInt(rank0, 10);
     const top = this.gameDeck[this.gameDeck.length - 1] || null;
 
-    // 7 rule
-    if (this.sevenPlayed && playedRank > 7 && playedRank !== 10 && playedRank !== 2) {
-      player.hand.push(...selected);
-      player.hand = player.hand.concat(this.gameDeck);
-      this.gameDeck = [];
-      player.socket.emit("error", "After a 7, you must play 7 or lower (except 2 or 10). You picked up the pile.");
+    const invalidateGroup = (msg) => {
+      if (msg) player.socket.emit("error", msg);
       this.updateGameState();
       return;
+    };
+
+    // 7 rule – reject but DON'T auto-pickup, don't touch pile
+    if (
+      this.sevenPlayed &&
+      playedRank > 7 &&
+      playedRank !== 10 &&
+      playedRank !== 2
+    ) {
+      return invalidateGroup(
+        "After a 7, you must play 7 or lower (except 2 or 10). You may choose to pick up the pile instead."
+      );
     }
 
-    // Normal ≥ top unless special
-    if (!this.sevenPlayed && top && playedRank < parseInt(top.rank, 10) && ![2, 10].includes(playedRank)) {
-      player.hand.push(...selected);
-      player.hand = player.hand.concat(this.gameDeck);
-      this.gameDeck = [];
-      player.socket.emit("error", `Must play ≥ ${top.rank} (unless 2 or 10). You picked up the pile.`);
-      this.updateGameState();
-      return;
+    // Normal ≥ top unless special – reject but DON'T auto-pickup
+    if (
+      !this.sevenPlayed &&
+      top &&
+      playedRank < parseInt(top.rank, 10) &&
+      ![2, 10].includes(playedRank)
+    ) {
+      return invalidateGroup(
+        `Must play ≥ ${top.rank} (unless 2 or 10). You can click 'Pick Up' if you want the pile.`
+      );
     }
+
+    // --- From here on, move is valid ---
 
     // Remove from hand
     for (const i of sorted) player.hand.splice(i, 1);
@@ -214,9 +233,8 @@ class GameSession {
       this.updateGameState();
       this.maybeEndGame?.(player);
       return;
-    } 
+    }
 
-    // Specials
     if (playedRank === 10) {
       this.gameDeck = [];
       this.sevenPlayed = false;
@@ -229,7 +247,6 @@ class GameSession {
       this.sevenPlayed = false;
       this.twoPlayed = true;
 
-      // Promote if emptied hand
       if (player.hand.length === 0) {
         if (player.faceUpCards.length > 0) {
           player.hand.push(...player.faceUpCards);
@@ -292,26 +309,33 @@ class GameSession {
   processPlayedCard(playedCard, player, currentTopCard) {
     const playedRank = parseInt(playedCard.rank, 10);
 
-    // 7-restriction violation → pickup
-    if (this.sevenPlayed && playedRank > 7 && playedRank !== 10 && playedRank !== 2) {
+    const invalidatePlay = (msg) => {
       player.hand.push(playedCard);
-      player.hand = player.hand.concat(this.gameDeck);
-      this.gameDeck = [];
-      player.socket.emit("error", "You must play a 7 or lower after a 7 has been played");
+      if (msg) player.socket.emit("error", msg);
       this.updateGameState();
-      return { action: "pickup", mustPlayAnother: false };
+      return { action: "invalid", mustPlayAnother: false };
+    };
+
+    // 7-restriction violation → pickup
+    if (
+      this.sevenPlayed &&
+      playedRank > 7 &&
+      playedRank !== 10 &&
+      playedRank !== 2
+    ) {
+      return invalidatePlay("You must play a 7 or lower after a 7 has been played. You may choose to pick up the pile instead.");
     }
 
     // Normal rule violation → pickup
-    if (!this.sevenPlayed && currentTopCard &&
-        playedRank < parseInt(currentTopCard.rank, 10) &&
-        ![2, 10].includes(playedRank)) {
-      player.hand.push(playedCard);
-      player.hand = player.hand.concat(this.gameDeck);
-      this.gameDeck = [];
-      player.socket.emit("error", `Must play ≥ ${currentTopCard.rank} (unless 2 or 10). You picked up the pile.`);
-      this.updateGameState();
-      return { action: "pickup", mustPlayAnother: false };
+    if (
+      !this.sevenPlayed &&
+      currentTopCard &&
+      playedRank < parseInt(currentTopCard.rank, 10) &&
+      ![2, 10].includes(playedRank)
+    ) {
+      return invalidatePlay(
+        `Must play ≥ ${currentTopCard.rank} (unless 2 or 10). You can click 'Pick Up' if you want the pile.`
+      );
     }
 
     // Place on pile
