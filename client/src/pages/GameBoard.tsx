@@ -360,7 +360,7 @@ export default function GameBoard() {
 					<section className="rounded-xl bg-neutral-800/60 border border-neutral-700 p-4">
 						<div className="text-sm mb-3">
 							<div className="font-semibold">You</div>
-							<div className="text-xs text-slate-400">{socket?.id?.slice(0, 6)}</div>
+							<div className="text-xs text-slate-400">ID: {socket?.id?.slice(0, 6)}</div>
 						</div>
 						<FaceStacks
 							down={toPlayingCards(me?.faceDownCards, false, "me", "down")}
