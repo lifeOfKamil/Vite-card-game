@@ -217,7 +217,7 @@ class GameSession {
       ![2, 10].includes(playedRank)
     ) {
       return invalidateGroup(
-        `Must play ≥ ${top.rank} (unless 2 or 10). You can click 'Pick Up' if you want the pile.`
+        `Must play ≥ ${top.rank} (unless 2 or 10) or pick up the pile.`
       );
     }
 
@@ -230,8 +230,22 @@ class GameSession {
     this.gameDeck.push(...selected);
 
     if (this.checkFourOfAKind()) {
+      if (this.deck.length > 0 && player.hand.length < 3) {
+        while (player.hand.length < 3 && this.deck.length > 0) {
+          this.drawCard(player);
+        }
+      } else if (
+        this.deck.length === 0 &&
+        player.hand.length === 0 &&
+        player.faceUpCards.length > 0
+      ) {
+        player.hand.push(...player.faceUpCards);
+        player.faceUpCards = [];
+      }
+
       this.updateGameState();
       this.maybeEndGame?.(player);
+      this.nextPlayer();   // you already added this earlier
       return;
     }
 
@@ -289,7 +303,7 @@ class GameSession {
     const playedCard = player.faceDownCards.splice(cardIndex, 1)[0];
     const currentTopCard = this.gameDeck[this.gameDeck.length - 1] || null;
 
-    const res = this.processPlayedCard(playedCard, player, currentTopCard);
+    const res = this.processPlayedCard(playedCard, player, currentTopCard, { fromFaceDown: true });
     
     if (res?.mustPlayAnother) {
       return res;
@@ -306,11 +320,20 @@ class GameSession {
 
   }
 
-  processPlayedCard(playedCard, player, currentTopCard) {
+  processPlayedCard(playedCard, player, currentTopCard, opts = {}) {
+    const fromFaceDown = opts.fromFaceDown === true;
     const playedRank = parseInt(playedCard.rank, 10);
 
     const invalidatePlay = (msg) => {
-      player.hand.push(playedCard);
+      if (fromFaceDown) {
+        player.hand = player.hand.concat(this.gameDeck, playedCard);
+        this.gameDeck = [];
+        this.sevenPlayed = false;
+        this.twoPlayed = false;
+      } else {
+        player.hand.push(playedCard);
+      }
+
       if (msg) player.socket.emit("error", msg);
       this.updateGameState();
       return { action: "invalid", mustPlayAnother: false };
@@ -342,9 +365,22 @@ class GameSession {
     this.gameDeck.push(playedCard);
 
     if (this.checkFourOfAKind()) {
+      if (this.deck.length > 0 && player.hand.length < 3) {
+        while (player.hand.length < 3 && this.deck.length > 0) {
+          this.drawCard(player);
+        }
+      } else if (
+        this.deck.length === 0 &&
+        player.hand.length === 0 &&
+        player.faceUpCards.length > 0
+      ) {
+        player.hand = player.hand.concat(player.faceUpCards);
+        player.faceUpCards = [];
+      }
+
       this.updateGameState();
       this.maybeEndGame?.(player);
-      this.nextPlayer();
+      // don't call nextPlayer() here; callers handle turn advance
       return { action: "cleared", mustPlayAnother: false };
     }
 
