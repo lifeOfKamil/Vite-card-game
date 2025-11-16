@@ -155,8 +155,8 @@ export function GameLobby() {
 							</code>
 							<button
 								onClick={copyGameId}
-								className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${
-									copied ? "bg-green-500 text-white" : "bg-indigo-600 text-white hover:bg-indigo-700"
+								className={`px-4 bg-black! py-2 rounded-lg font-semibold transition-all duration-200 ${
+									copied ? "bg-green-500! text-white" : "bg-indigo-600 text-white hover:bg-indigo-700"
 								}`}
 							>
 								{copied ? "✓ Copied!" : "Copy"}
@@ -185,7 +185,7 @@ export function GameLobby() {
 
 					<button
 						onClick={leaveGame}
-						className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+						className="w-full bg-red-500! hover:bg-red-600! text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
 					>
 						Leave Game
 					</button>
@@ -208,7 +208,7 @@ export function GameLobby() {
 						<button
 							onClick={createGame}
 							disabled={isCreating}
-							className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg"
+							className="w-full bg-black! disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg"
 						>
 							{isCreating ? (
 								<span className="flex items-center justify-center gap-2">
@@ -262,7 +262,7 @@ export function GameLobby() {
 							/>
 							<button
 								onClick={joinGame}
-								className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg"
+								className="w-full bg-black! text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg"
 							>
 								Join Game
 							</button>

@@ -285,7 +285,10 @@ export default function GameBoard() {
 					</span>
 					<span className="text-xs text-slate-400">Game Id: {gameId}</span>
 				</div>
-				<button onClick={leaveGame} className="px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-sm">
+				<button
+					onClick={leaveGame}
+					className="px-3 py-1.5 rounded-md bg-rose-600! opacity-80 hover:bg-rose-700! hover:opacity-100 text-white text-sm"
+				>
 					Leave
 				</button>
 			</div>
