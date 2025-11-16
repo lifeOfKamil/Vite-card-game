@@ -312,7 +312,12 @@ export default function GameBoard() {
 					</section>
 
 					{/* CENTER: deck + pile */}
-					<section className="bg-none border border-none my-6 p-4 flex flex-row items-center justify-center gap-6 ">
+					<section
+						className={`
+						bg-none border border-none my-6 p-4 flex flex-row items-center justify-center
+						${pileLength > 0 ? "gap-2" : "gap-6"}
+					`}
+					>
 						{/* Deck */}
 						<div className="flex flex-col items-center gap-2">
 							{deckLength > 0 ? (
