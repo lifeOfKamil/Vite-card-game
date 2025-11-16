@@ -143,7 +143,7 @@ export function GameLobby() {
 	// Waiting in lobby view
 	if (lobbyInfo) {
 		return (
-			<div className="min-h-screen bg-none flex items-center justify-center p-4">
+			<div className="min-h-screen bg-linear-to-br from-[#064e3b] to-[#020617] flex items-center justify-center p-4">
 				<div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
 					<h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Game Lobby</h1>
 
@@ -196,7 +196,7 @@ export function GameLobby() {
 
 	// Initial lobby view (create or join)
 	return (
-		<div className="min-h-screen bg-none flex items-center justify-center p-4">
+		<div className="min-h-screen bg-linear-to-br from-[#064e3b] to-[#020617] flex items-center justify-center p-4">
 			<div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
 				<h1 className="text-4xl font-bold text-center text-gray-800 mb-8">🃏 Haan Card Game</h1>
 
