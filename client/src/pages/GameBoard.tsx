@@ -272,7 +272,7 @@ export default function GameBoard() {
 	};
 
 	return (
-		<div className="min-h-screen sm:px-10 px-6 bg-neutral-900 text-slate-100">
+		<div className="min-h-screen sm:px-10 px-6 bg-[#020617] text-slate-100">
 			{/* header */}
 			<div className="max-w-6xl mx-auto py-3 flex items-center justify-between">
 				<div className="flex items-center gap-3">
@@ -296,9 +296,9 @@ export default function GameBoard() {
                       grid-cols-1 xl:grid-cols-[minmax(240px,50%)_minmax(220px,50%)] 3xl:mt-10 xl:justify-items-normal"
 			>
 				{/* LEFT COLUMN: opponent (top) + you (bottom) */}
-				<div className="flex flex-col justify-between gap-8">
+				<div className="flex flex-col justify-between rounded-xl bg-linear-45 from-[#064e3b] to-[#022c22]">
 					{/* Opponent */}
-					<section className="rounded-xl bg-neutral-800/60 border border-neutral-700 p-4">
+					<section className="rounded-t-xl bg-none border border-none p-4">
 						<div className="text-sm mb-3">
 							<div className="font-semibold">Opponent</div>
 							<div className="text-xs text-slate-400">{opp ? `ID: ${opp.id.slice(0, 6)}` : "Waiting…"}</div>
@@ -312,11 +312,11 @@ export default function GameBoard() {
 					</section>
 
 					{/* CENTER: deck + pile */}
-					<section className="rounded-xl bg-neutral-800/60 border border-neutral-700 p-4 flex flex-row items-center justify-center gap-6 ">
+					<section className="bg-none border border-none my-6 p-4 flex flex-row items-center justify-center gap-6 ">
 						{/* Deck */}
 						<div className="flex flex-col items-center gap-2">
 							{deckLength > 0 ? (
-								<div className="relative my-8">
+								<div className="relative">
 									<CardFaceDown clickable={isMyTurn} />
 									<span className="absolute -top-2 -right-2 text-xs bg-neutral-900 border border-neutral-700 rounded-full px-2 py-0.5">
 										{deckLength}
@@ -325,7 +325,7 @@ export default function GameBoard() {
 							) : (
 								<span className="text-xs text-slate-400 italic">Deck empty</span>
 							)}
-							<span className="text-[11px] text-slate-400">Deck</span>
+							<span className="text-sm text-slate-400">Deck</span>
 						</div>
 
 						{/* Pile */}
@@ -335,7 +335,7 @@ export default function GameBoard() {
 							) : (
 								<span className="text-xs text-slate-400 italic">Pile empty</span>
 							)}
-							<span className="text-[11px] text-slate-400">Pile{pileLength ? ` (${pileLength})` : ""}</span>
+							<span className="text-xs text-slate-400">Pile{pileLength ? ` (${pileLength})` : ""}</span>
 						</div>
 
 						{/* Actions */}
@@ -343,23 +343,39 @@ export default function GameBoard() {
 							<button
 								onClick={pickUpCards}
 								disabled={!isMyTurn}
-								className="px-3 py-1.5 text-sm rounded-md border border-neutral-600 bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50"
+								className="px-3 py-1.5 text-sm rounded-md border border-neutral-600 bg-[#ea580c]! hover:bg-neutral-600 disabled:opacity-50"
 							>
 								Pick Up
 							</button>
 							<button
 								onClick={submitSelected}
 								disabled={!isMyTurn || selectedIdx.length === 0}
-								className="px-3 py-1.5 text-sm rounded-md border border-neutral-600 bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50"
+								className="px-3 py-1.5 text-sm rounded-md border border-neutral-600 bg-[#16a34a]! hover:bg-neutral-600 disabled:opacity-50"
 							>
 								Play
 							</button>
 						</div>
 					</section>
+
 					{/* You */}
-					<section className="rounded-xl bg-neutral-800/60 border border-neutral-700 p-4">
+					<section className="bg-none border-none p-4 transition-shadow duration-400">
 						<div className="text-sm mb-3">
-							<div className="font-semibold">You</div>
+							<div className="flex items-center justify-center gap-2 mt-1 relative">
+								<span className="text-xs text-slate-200">You</span>
+								<span
+									className={`
+									absolute top-0 right-0 flex items-center gap-1 text-xs text-emerald-400
+									transition-all duration-300
+									${isMyTurn ? "opacity-100 scale-100" : "opacity-0 scale-95"}
+								`}
+								>
+									<span className="relative flex h-2 w-2">
+										<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+										<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+									</span>
+									Your turn
+								</span>
+							</div>
 							<div className="text-xs text-slate-400">ID: {socket?.id?.slice(0, 6)}</div>
 						</div>
 						<FaceStacks
@@ -388,7 +404,7 @@ export default function GameBoard() {
 
 				{/* RIGHT: hand */}
 				<section className="hand-section sm:rounded-xl p-4 pb-20 xl:min-h-[726px]">
-					<div className="text-sm pb-4 font-semibold">Cards in Hand</div>
+					<div className="text-base pb-4 font-semibold">Cards in Hand</div>
 
 					<div className="mx-auto w-full max-w-5xl flex flex-wrap justify-center gap-2">
 						{me?.hand?.map((c, idx) => {
